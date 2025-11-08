@@ -14,7 +14,7 @@
   .tab{padding:6px 12px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:#f6f7fb;cursor:pointer}
   .tab.active{background:#fff;font-weight:600}
   .subbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--muted)}
-  .app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 54px);gap:0}
+  .app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 54px)}
   .sidebar{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
   .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
   .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
@@ -22,7 +22,7 @@
   .list{overflow:auto}
   .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
   .item.active{background:#eef2ff}
-  .item small{display:block;color:var(--muted)}
+  .item .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
   .path{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .path input{flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:8px}
@@ -35,7 +35,7 @@
   .meta{display:flex;gap:8px;flex-wrap:wrap}
   .meta select,.meta input{padding:8px;border:1px solid var(--line);border-radius:8px}
 
-  /* ✅ 모바일/태블릿: 리스트가 위, 에디터가 아래 (둘 다 항상 보임) */
+  /* ✅ 모바일/태블릿: 리스트가 위, 에디터가 아래(둘 다 항상 보임) */
   @media (max-width:900px){
     .app{grid-template-columns:1fr;gap:12px;padding:8px}
     .sidebar{border-right:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -66,12 +66,12 @@
   <aside class="sidebar">
     <!-- 메모 툴바 -->
     <div class="toolbar" id="toolsNotes">
-      <input id="searchNotes" placeholder="메모 검색(파일명)"/>
+      <input id="searchNotes" placeholder="메모 검색(제목)"/>
       <button id="newNote" class="btn">새 노트</button>
     </div>
     <!-- 일기 툴바 -->
     <div class="toolbar" id="toolsDiary" style="display:none;">
-      <input id="searchDiary" placeholder="이 달의 일기 검색(파일명)"/>
+      <input id="searchDiary" placeholder="이 달의 일기 검색(제목)"/>
     </div>
 
     <!-- 공통 리스트 -->
@@ -80,10 +80,10 @@
 
   <main class="editor">
     <div class="path">
-      <input id="filename" placeholder="경로를 입력하세요 (예: notes/inbox.md)"/>
+      <input id="filename" placeholder="경로 (예: notes/inbox.md 또는 diary/2025/11/08.md)"/>
       <div class="actions">
         <button id="loadBtn" class="btn">불러오기</button>
-        <!-- ✅ 자동저장 제거, 저장 버튼만 -->
+        <!-- ✅ 자동저장 제거: 저장 버튼으로만 저장 -->
         <button id="saveBtn" class="btn primary">저장</button>
         <span id="saveState" class="badge">대기</span>
       </div>
@@ -115,10 +115,10 @@
 
 <script>
 (function(){
-  // ★ 본인 Worker 주소
-  const API = 'https://notes-api.rusilhurpe.workers.dev';
+  /* ===== 설정 ===== */
+  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ← 너의 Worker 주소
 
-  // 공통 DOM
+  /* ===== 공통 DOM ===== */
   const listEl = document.getElementById('list');
   const filenameEl = document.getElementById('filename');
   const editorEl = document.getElementById('editor');
@@ -128,18 +128,18 @@
   const info = document.getElementById('info');
   const todayEl = document.getElementById('today');
 
-  // 탭 관련
+  /* 탭/툴바 */
   const tabNotes = document.getElementById('tabNotes');
   const tabDiary = document.getElementById('tabDiary');
   const toolsNotes = document.getElementById('toolsNotes');
   const toolsDiary = document.getElementById('toolsDiary');
 
-  // 검색/버튼
+  /* 검색/새노트 */
   const searchNotes = document.getElementById('searchNotes');
   const searchDiary = document.getElementById('searchDiary');
   const newNoteBtn = document.getElementById('newNote');
 
-  // 일기용
+  /* 일기 UI */
   const dateBar = document.getElementById('dateBar');
   const picker = document.getElementById('datePicker');
   const prevBtn = document.getElementById('prevDay');
@@ -149,7 +149,7 @@
   const weatherEl = document.getElementById('weather');
   const tagsEl = document.getElementById('tags');
 
-  // 상태
+  /* ===== 상태 ===== */
   let mode = 'notes'; // 'notes' | 'diary'
   let currentPath = '';
   let sha = null;
@@ -157,17 +157,52 @@
   let currentDate = new Date();
   let dirty = false;
 
-  // 오늘 표시
+  /* 오늘 날짜 표시 */
   const fmt = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   todayEl.textContent = fmt(new Date());
   picker.valueAsDate = currentDate;
 
-  // Diary 경로 유틸
+  /* Diary 경로 유틸 */
   const monthDir = (d)=> `diary/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
   const toDiaryPath = (d)=> `${monthDir(d)}/${String(d.getDate()).padStart(2,'0')}.md`;
   const pathToDate = (p)=>{ const m=p.match(/(\d{4})\/(\d{2})\/(\d{2})\.md$/); return m? new Date(+m[1],+m[2]-1,+m[3]) : new Date(); };
 
-  // 목록
+  /* ===== 제목 캐시/추출 (리스트에는 제목만 표시) ===== */
+  const titleCache = new Map();
+
+  function fallbackTitle(path){
+    const base = path.split('/').pop().replace(/\.md$/i,'');
+    return base.replace(/[-_]+/g,' ');
+  }
+
+  async function getTitle(path){
+    if (titleCache.has(path)) return titleCache.get(path);
+    try{
+      const r = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
+      if(!r.ok){ const t=fallbackTitle(path); titleCache.set(path,t); return t; }
+      const {content} = await r.json();
+      let title = '';
+      if(content){
+        const lines = content.split(/\r?\n/);
+        const h = lines.find(l=>/^#\s+/.test(l));
+        title = h ? h.replace(/^#\s+/,'').trim() : (lines.find(l=>l.trim())||'').trim();
+      }
+      if(!title) title = fallbackTitle(path);
+      if(title.length>80) title = title.slice(0,80)+'…';
+      titleCache.set(path,title);
+      return title;
+    }catch{
+      const t=fallbackTitle(path); titleCache.set(path,t); return t;
+    }
+  }
+
+  function updateTitleCacheFromEditor(path){
+    const line = editorEl.value.split(/\r?\n/).find(l=>/^#\s+/.test(l));
+    const title = (line ? line.replace(/^#\s+/, '').trim() : '') || titleCache.get(path) || fallbackTitle(path);
+    titleCache.set(path, title);
+  }
+
+  /* ===== 목록 ===== */
   async function loadList(){
     const dir = mode==='notes' ? 'notes' : monthDir(currentDate);
     const res = await fetch(`${API}/list?dir=${encodeURIComponent(dir)}`);
@@ -175,30 +210,41 @@
     cacheList = await res.json();
     renderList();
   }
-  function renderList(){
+
+  async function renderList(){
     const q = (mode==='notes' ? (searchNotes.value||'') : (searchDiary.value||'')).toLowerCase();
     listEl.innerHTML='';
-    let items = cacheList.filter(x => x.name.toLowerCase().includes(q));
+    let items = cacheList.slice();
+    // 제목 기준 정렬 준비(캐시 없으면 파일명으로 임시 정렬)
     items.sort((a,b)=> (mode==='notes' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)));
-    if(items.length===0){ listEl.innerHTML = `<div class="item">${mode==='notes'?'메모가 없습니다':'이 달의 일기가 없습니다'}</div>`; return; }
+
+    if(items.length===0){
+      listEl.innerHTML = `<div class="item">${mode==='notes'?'메모가 없습니다':'이 달의 일기가 없습니다'}</div>`;
+      return;
+    }
+
     for(const it of items){
-      const el=document.createElement('div');
-      el.className='item'+(it.path===currentPath?' active':'');
-      if(mode==='notes'){
-        el.innerHTML=`<div>${it.name}</div><small>${it.path}</small>`;
-        el.onclick=()=> { filenameEl.value = it.path; doLoad(it.path); };
-      }else{
-        const day = it.name.replace('.md','');
-        el.innerHTML=`<div>${day}일</div><small>${it.path}</small>`;
-        el.onclick=()=> openDiary(pathToDate(it.path));
-      }
+      const el = document.createElement('div');
+      el.className = 'item' + (it.path===currentPath?' active':'');
+      el.innerHTML = `<div class="title">제목 불러오는 중…</div>`;
+      el.onclick = () => {
+        if (mode==='notes') { filenameEl.value = it.path; doLoad(it.path); }
+        else { openDiary(pathToDate(it.path)); }
+      };
       listEl.appendChild(el);
+
+      // 제목 비동기 채우기 + 검색 반영
+      getTitle(it.path).then(title=>{
+        if(q && !title.toLowerCase().includes(q)){ el.remove(); return; }
+        el.querySelector('.title').textContent = title;
+      });
     }
   }
+
   searchNotes.addEventListener('input', renderList);
   searchDiary.addEventListener('input', renderList);
 
-  // 불러오기/저장
+  /* ===== 불러오기/저장 ===== */
   loadBtn.onclick = ()=> doLoad(filenameEl.value.trim());
   saveBtn.onclick = ()=> doSave();
 
@@ -219,6 +265,7 @@
       weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
       tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
     }
+    updateTitleCacheFromEditor(path);
     loadList();
   }
 
@@ -237,16 +284,16 @@
     dirty = false;
     saveState.textContent='저장됨';
     info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
+    updateTitleCacheFromEditor(path);
     if(!cacheList.some(x=>x.path===path)) loadList();
+    else renderList(); // 제목 갱신 반영
   }
 
-  // 변경 감지(저장 경고만)
+  // 변경 감지(이탈 경고만)
   editorEl.addEventListener('input', ()=>{ dirty=true; saveState.textContent='수정됨'; });
-  window.addEventListener('beforeunload', (e)=>{
-    if(dirty){ e.preventDefault(); e.returnValue=''; }
-  });
+  window.addEventListener('beforeunload', (e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 
-  // 메모: 새 노트
+  /* ===== 메모: 새 노트 ===== */
   newNoteBtn.onclick = ()=>{
     const now=new Date();
     const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
@@ -254,9 +301,11 @@
     filenameEl.value = path; currentPath=path; sha=null;
     editorEl.value = `# ${name.replace('.md','')}\n\n`;
     dirty=true; saveState.textContent='수정됨';
+    titleCache.set(path, name.replace('.md',''));
+    renderList();
   };
 
-  // 일기
+  /* ===== 일기 ===== */
   function diaryTemplate(date){
     const ymd = fmt(date);
     return `---
@@ -278,6 +327,7 @@ tags: ${tagsEl.value||''}
 - 
 `;
   }
+
   async function openDiary(date){
     currentDate = date;
     picker.valueAsDate = date;
@@ -298,11 +348,14 @@ tags: ${tagsEl.value||''}
       weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
       tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
     }
+    updateTitleCacheFromEditor(path);
     loadList();
   }
+
   prevBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-1));
   nextBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()+1));
   picker.onchange   = ()=> openDiary(new Date(picker.value));
+
   [moodEl,weatherEl,tagsEl].forEach(el=> el.addEventListener('change', ()=>{
     if(mode!=='diary') return;
     let t=editorEl.value;
@@ -313,7 +366,7 @@ tags: ${tagsEl.value||''}
     editorEl.value = t; dirty=true; saveState.textContent='수정됨';
   }));
 
-  // 탭 전환
+  /* ===== 탭 전환 ===== */
   function switchTab(next){
     if(dirty && !confirm('저장하지 않은 변경 사항이 있습니다. 전환하시겠어요?')) return;
     mode = next;
@@ -323,9 +376,9 @@ tags: ${tagsEl.value||''}
     toolsDiary.style.display = (mode==='diary')?'flex':'none';
     dateBar.style.display    = (mode==='diary')?'flex':'none';
     metaDiary.style.display  = (mode==='diary')?'flex':'none';
-    dirty = false;
+    dirty=false;
     if(mode==='notes'){
-      filenameEl.value = 'notes/inbox.md';
+      filenameEl.value='notes/inbox.md';
       doLoad('notes/inbox.md');
     }else{
       openDiary(currentDate);
@@ -334,7 +387,7 @@ tags: ${tagsEl.value||''}
   tabNotes.onclick = ()=> switchTab('notes');
   tabDiary.onclick = ()=> switchTab('diary');
 
-  // 시작: 메모 기본
+  /* ===== 시작: 메모 기본 ===== */
   switchTab('notes');
   loadList();
 })();
