@@ -1,105 +1,189 @@
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    const cors = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    };
-    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>My Notes</title>
+<style>
+  :root{--bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:1}
+  h1{margin:0;font-size:18px}
+  #date{font-weight:600}
+  .app{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 54px)}
+  .sidebar{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+  .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+  .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:#f8f9fb;border-radius:8px;cursor:pointer}
+  .list{overflow:auto}
+  .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .item.active{background:#eef2ff}
+  .item small{display:block;color:var(--muted)}
+  .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
+  .path{display:flex;gap:8px;align-items:center}
+  .path input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  textarea{width:100%;height:65vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff}
+  .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}
+  .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+  @media (max-width:900px){ .app{grid-template-columns:1fr} .sidebar{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <h1>📝 My Notes</h1>
+  <div id="date"></div>
+</header>
 
-    const owner  = env.OWNER;
-    const repo   = env.REPO;
-    const branch = 'main';
+<div class="app">
+  <aside class="sidebar">
+    <div class="toolbar">
+      <input id="search" placeholder="검색(파일명)"/>
+      <button id="newBtn">새 노트</button>
+    </div>
+    <div id="list" class="list"></div>
+  </aside>
 
-    // 공통 헤더 (여기에 User-Agent 추가!)
-    const ghHeaders = {
-      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'notes-worker/1.0 (+https://kjd1374.github.io/notes/)'
-    };
+  <main class="editor">
+    <div class="path">
+      <input id="filename" value="notes/inbox.md"/>
+      <button id="loadBtn">불러오기</button>
+      <span id="saveState" class="badge">대기</span>
+    </div>
+    <textarea id="editor" placeholder="여기에 메모를 입력하세요. (자동 저장)"></textarea>
+    <div class="status">
+      <span>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></span>
+      <span id="info"></span>
+    </div>
+  </main>
+</div>
 
-    // --- 진단: 토큰 확인
-    if (url.pathname === '/whoami') {
-      const r = await fetch('https://api.github.com/user', { headers: ghHeaders });
-      const text = await r.text();
-      return new Response(text, { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
-    }
+<script>
+(function(){
+  // ← 본인 Worker 주소
+  const API = 'https://notes-api.rusilhurpe.workers.dev';
+  const NOTES_DIR = 'notes';
 
-    // --- 진단: 리포 루트 나열
-    if (url.pathname === '/can-list') {
-      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents?ref=${branch}`;
-      const r = await fetch(ghUrl, { headers: ghHeaders });
-      const text = await r.text();
-      return new Response(text, { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
-    }
+  // 날짜 표시
+  const d = new Date();
+  document.getElementById('date').textContent =
+    d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 
-    // --- 목록: /list?dir=notes
-    if (url.pathname === '/list' && request.method === 'GET') {
-      const dir = url.searchParams.get('dir') || 'notes';
-      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(dir)}?ref=${branch}`;
-      const res = await fetch(ghUrl, { headers: ghHeaders });
+  const listEl = document.getElementById('list');
+  const searchEl = document.getElementById('search');
+  const newBtn = document.getElementById('newBtn');
+  const filenameEl = document.getElementById('filename');
+  const loadBtn = document.getElementById('loadBtn');
+  const editorEl = document.getElementById('editor');
+  const saveState = document.getElementById('saveState');
+  const info = document.getElementById('info');
 
-      if (res.status === 404) {
-        return new Response(JSON.stringify([]), { headers: { ...cors, 'Content-Type': 'application/json' }});
-      }
-      if (!res.ok) return new Response(await res.text(), { status: res.status, headers: cors });
+  let sha = null;
+  let currentPath = '';
+  let dirty = false;
+  let saving = false;
+  let timer = null;
+  let cacheList = [];
 
-      const list = await res.json();
-      const items = (Array.isArray(list) ? list : [])
-        .filter(x => x.type === 'file' && /\.md$/i.test(x.name))
-        .map(x => ({ name: x.name, path: x.path, size: x.size || 0 }))
-        .sort((a, b) => b.name.localeCompare(a.name));
-      return new Response(JSON.stringify(items), { headers: { ...cors, 'Content-Type': 'application/json' }});
-    }
-
-    // --- 불러오기: /load?path=notes/inbox.md
-    if (url.pathname === '/load' && request.method === 'GET') {
-      const path = url.searchParams.get('path');
-      if (!path) return new Response('path required', { status: 400, headers: cors });
-
-      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`;
-      const res = await fetch(ghUrl, { headers: ghHeaders });
-
-      if (res.status === 404) {
-        return new Response(JSON.stringify({ content: '', sha: null }), { headers: { ...cors, 'Content-Type': 'application/json' }});
-      }
-      if (!res.ok) return new Response(await res.text(), { status: res.status, headers: cors });
-
-      const data = await res.json();
-      const content = data.content ? atob(data.content) : '';
-      return new Response(JSON.stringify({ content, sha: data.sha }), { headers: { ...cors, 'Content-Type': 'application/json' }});
-    }
-
-    // --- 저장: POST /save { path, content, sha? }
-    if (url.pathname === '/save' && request.method === 'POST') {
-      const body = await request.json();
-      const { path, content, sha } = body || {};
-      if (!path || typeof content !== 'string')
-        return new Response('path and content required', { status: 400, headers: cors });
-
-      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-      const payload = {
-        message: `chore(notes): auto-save ${path}`,
-        content: btoa(unescape(encodeURIComponent(content))),
-        branch
-      };
-      if (sha) payload.sha = sha;
-
-      const res = await fetch(ghUrl, {
-        method: 'PUT',
-        headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) return new Response(await res.text(), { status: res.status, headers: cors });
-
-      const data = await res.json();
-      const newSha = data.content?.sha || null;
-      return new Response(JSON.stringify({ ok: true, sha: newSha }), { headers: { ...cors, 'Content-Type': 'application/json' }});
-    }
-
-    // 기본 응답
-    return new Response('ok', { headers: cors });
+  // ----- 사이드바 목록 -----
+  async function loadList() {
+    const res = await fetch(`${API}/list?dir=${encodeURIComponent(NOTES_DIR)}`);
+    if (!res.ok) { listEl.innerHTML = `<div class="item">목록 불러오기 실패 (${res.status})</div>`; return; }
+    cacheList = await res.json(); // [{name,path},...]
+    renderList();
   }
-}
+  function renderList() {
+    const q = (searchEl.value||'').trim().toLowerCase();
+    listEl.innerHTML = '';
+    const items = cacheList.filter(x => x.name.toLowerCase().includes(q));
+    if (items.length===0) {
+      listEl.innerHTML = `<div class="item">노트가 없습니다</div>`;
+      return;
+    }
+    for (const it of items) {
+      const el = document.createElement('div');
+      el.className = 'item' + (it.path===currentPath ? ' active':'');
+      el.innerHTML = `<div>${it.name}</div><small>${it.path}</small>`;
+      el.onclick = ()=> { filenameEl.value = it.path; loadFile(it.path); };
+      listEl.appendChild(el);
+    }
+  }
+  searchEl.addEventListener('input', renderList);
+
+  // ----- 새 노트 -----
+  newBtn.onclick = () => {
+    const now = new Date();
+    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
+    const path = `${NOTES_DIR}/${name}`;
+    filenameEl.value = path;
+    editorEl.value = `# ${name.replace('.md','')}\n\n`;
+    sha = null; currentPath = path; dirty = true; saveSoon(true);
+    setActive(path);
+  };
+
+  function setActive(path){
+    currentPath = path;
+    // active 표시 갱신
+    [...document.querySelectorAll('.item')].forEach(el => {
+      if (el.querySelector('small')) el.classList.toggle('active', el.querySelector('small').textContent===path);
+    });
+  }
+
+  // ----- 파일 불러오기 -----
+  loadBtn.onclick = () => loadFile(filenameEl.value.trim());
+  async function loadFile(path){
+    if (!path) return;
+    info.textContent = '불러오는 중...';
+    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
+    if (!res.ok) { info.textContent = `불러오기 실패 ${res.status}`; saveState.textContent='실패'; return; }
+    const json = await res.json();
+    editorEl.value = json.content || '';
+    sha = json.sha || null;
+    dirty = false;
+    saveState.textContent = '불러옴';
+    info.textContent = path;
+    setActive(path);
+    // 목록 최신화(처음 생성된 파일일 수 있으므로)
+    loadList();
+  }
+
+  // ----- 자동 저장 -----
+  editorEl.addEventListener('input', ()=>{ dirty=true; saveSoon(); });
+  function saveSoon(immediate=false){
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(saveNow, immediate ? 0 : 1200);
+  }
+  async function saveNow(){
+    if (saving || !dirty) return;
+    const path = filenameEl.value.trim();
+    if (!path) return;
+    saving = true; saveState.textContent = '저장 중...';
+    const res = await fetch(`${API}/save`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path, content: editorEl.value, sha })
+    });
+    if (!res.ok) {
+      saveState.textContent = `저장 실패 ${res.status}`;
+      saving = false;
+      return;
+    }
+    const json = await res.json();
+    sha = json.sha || sha;
+    dirty = false; saving = false;
+    saveState.textContent = '저장됨';
+    info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
+    // 목록에 없던 새 파일이면 다시 목록 갱신
+    if (!cacheList.some(x => x.path === path)) loadList();
+  }
+
+  // 초기 구동
+  (async ()=>{
+    document.getElementById('filename').value = `${NOTES_DIR}/inbox.md`;
+    await loadList();
+    await loadFile(`${NOTES_DIR}/inbox.md`);
+  })();
+})();
+</script>
+</body>
+</html>
