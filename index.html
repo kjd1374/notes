@@ -5,101 +5,184 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>My Notes</title>
 <style>
-  body{max-width:900px;margin:24px auto;padding:0 16px;font-family:system-ui,-apple-system,Segoe UI,Roboto}
-  header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  input,button,textarea{font:inherit}
-  input,textarea{width:100%;box-sizing:border-box}
-  .row{display:flex;gap:8px;align-items:center}
-  .row>*{flex:1}
-  textarea{height:60vh;padding:12px;border:1px solid #ddd;border-radius:8px}
-  .badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid #ccc}
-  .ok{border-color:#5cb85c}.warn{border-color:#f0ad4e}.err{border-color:#d9534f}
-  footer{margin-top:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  :root{--bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:1}
+  h1{margin:0;font-size:18px}
+  #date{font-weight:600}
+  .app{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 54px)}
+  .sidebar{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+  .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+  .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:#f8f9fb;border-radius:8px;cursor:pointer}
+  .list{overflow:auto}
+  .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .item.active{background:#eef2ff}
+  .item small{display:block;color:var(--muted)}
+  .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
+  .path{display:flex;gap:8px;align-items:center}
+  .path input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  textarea{width:100%;height:65vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff}
+  .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}
+  .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+  @media (max-width:900px){ .app{grid-template-columns:1fr} .sidebar{display:none} }
 </style>
 </head>
 <body>
 <header>
-  <h1 style="margin:0;">📝 My Notes</h1>
-  <span id="status" class="badge warn">준비</span>
+  <h1>📝 My Notes</h1>
+  <div id="date"></div>
 </header>
 
-<div class="row" style="margin-top:8px;">
-  <input id="filename" placeholder="파일 경로 (예: inbox.md 또는 notes/today.md)" value="inbox.md"/>
-  <button id="loadBtn" style="flex:0 0 auto;">불러오기</button>
+<div class="app">
+  <aside class="sidebar">
+    <div class="toolbar">
+      <input id="search" placeholder="검색(파일명)"/>
+      <button id="newBtn">새 노트</button>
+    </div>
+    <div id="list" class="list"></div>
+  </aside>
+
+  <main class="editor">
+    <div class="path">
+      <input id="filename" value="notes/inbox.md"/>
+      <button id="loadBtn">불러오기</button>
+      <span id="saveState" class="badge">대기</span>
+    </div>
+    <textarea id="editor" placeholder="여기에 메모를 입력하세요. (자동 저장)"></textarea>
+    <div class="status">
+      <span>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></span>
+      <span id="info"></span>
+    </div>
+  </main>
 </div>
-
-<textarea id="editor" placeholder="여기에 메모를 입력하세요. (자동 저장)"></textarea>
-
-<footer>
-  <div>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></div>
-  <div id="info"></div>
-</footer>
 
 <script>
 (function(){
-  // === 여기만 본인 Worker 주소로 바꾸세요 ===
+  // ← 본인 Worker 주소
   const API = 'https://notes-api.rusilhurpe.workers.dev';
+  const NOTES_DIR = 'notes';
 
-  const status = document.getElementById('status');
-  const info = document.getElementById('info');
-  const editor = document.getElementById('editor');
-  const filenameInput = document.getElementById('filename');
+  // 날짜 표시
+  const d = new Date();
+  document.getElementById('date').textContent =
+    d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+
+  const listEl = document.getElementById('list');
+  const searchEl = document.getElementById('search');
+  const newBtn = document.getElementById('newBtn');
+  const filenameEl = document.getElementById('filename');
   const loadBtn = document.getElementById('loadBtn');
+  const editorEl = document.getElementById('editor');
+  const saveState = document.getElementById('saveState');
+  const info = document.getElementById('info');
 
+  let sha = null;
   let currentPath = '';
-  let currentSHA = null;
   let dirty = false;
   let saving = false;
-  let saveTimer = null;
+  let timer = null;
+  let cacheList = [];
 
-  loadBtn.onclick = () => loadFile(filenameInput.value.trim());
-  editor.addEventListener('input', ()=>{ dirty = true; scheduleSave(); });
-
-  function setOK(msg){ status.className='badge ok'; status.textContent=msg; }
-  function setWarn(msg){ status.className='badge warn'; status.textContent=msg; }
-  function setErr(msg){ status.className='badge err'; status.textContent=msg; }
-
-  async function loadFile(path){
-    if(!path) return alert('파일 경로를 입력하세요.');
-    info.textContent = '불러오는 중...';
-    currentPath = path; currentSHA = null; dirty = false;
-
-    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(res.status===404){
-      editor.value=''; currentSHA=null; info.textContent='새 파일'; scheduleSave(true); return;
+  // ----- 사이드바 목록 -----
+  async function loadList() {
+    const res = await fetch(`${API}/list?dir=${encodeURIComponent(NOTES_DIR)}`);
+    if (!res.ok) { listEl.innerHTML = `<div class="item">목록 불러오기 실패 (${res.status})</div>`; return; }
+    cacheList = await res.json(); // [{name,path},...]
+    renderList();
+  }
+  function renderList() {
+    const q = (searchEl.value||'').trim().toLowerCase();
+    listEl.innerHTML = '';
+    const items = cacheList.filter(x => x.name.toLowerCase().includes(q));
+    if (items.length===0) {
+      listEl.innerHTML = `<div class="item">노트가 없습니다</div>`;
+      return;
     }
-    if(!res.ok){ setErr('불러오기 실패'); info.textContent = (res.status+' '+res.statusText); return; }
+    for (const it of items) {
+      const el = document.createElement('div');
+      el.className = 'item' + (it.path===currentPath ? ' active':'');
+      el.innerHTML = `<div>${it.name}</div><small>${it.path}</small>`;
+      el.onclick = ()=> { filenameEl.value = it.path; loadFile(it.path); };
+      listEl.appendChild(el);
+    }
+  }
+  searchEl.addEventListener('input', renderList);
+
+  // ----- 새 노트 -----
+  newBtn.onclick = () => {
+    const now = new Date();
+    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
+    const path = `${NOTES_DIR}/${name}`;
+    filenameEl.value = path;
+    editorEl.value = `# ${name.replace('.md','')}\n\n`;
+    sha = null; currentPath = path; dirty = true; saveSoon(true);
+    setActive(path);
+  };
+
+  function setActive(path){
+    currentPath = path;
+    // active 표시 갱신
+    [...document.querySelectorAll('.item')].forEach(el => {
+      if (el.querySelector('small')) el.classList.toggle('active', el.querySelector('small').textContent===path);
+    });
+  }
+
+  // ----- 파일 불러오기 -----
+  loadBtn.onclick = () => loadFile(filenameEl.value.trim());
+  async function loadFile(path){
+    if (!path) return;
+    info.textContent = '불러오는 중...';
+    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
+    if (!res.ok) { info.textContent = `불러오기 실패 ${res.status}`; saveState.textContent='실패'; return; }
     const json = await res.json();
-    editor.value = json.content || '';
-    currentSHA = json.sha || null;
-    info.textContent = '불러옴: ' + path;
-    setOK('준비됨');
+    editorEl.value = json.content || '';
+    sha = json.sha || null;
+    dirty = false;
+    saveState.textContent = '불러옴';
+    info.textContent = path;
+    setActive(path);
+    // 목록 최신화(처음 생성된 파일일 수 있으므로)
+    loadList();
   }
 
-  function scheduleSave(immediate=false){
-    if(saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveNow, immediate? 0 : 1200);
+  // ----- 자동 저장 -----
+  editorEl.addEventListener('input', ()=>{ dirty=true; saveSoon(); });
+  function saveSoon(immediate=false){
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(saveNow, immediate ? 0 : 1200);
   }
-
   async function saveNow(){
-    if(saving || !dirty || !currentPath) return;
-    saving = true; setWarn('저장 중...');
+    if (saving || !dirty) return;
+    const path = filenameEl.value.trim();
+    if (!path) return;
+    saving = true; saveState.textContent = '저장 중...';
     const res = await fetch(`${API}/save`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ path: currentPath, content: editor.value, sha: currentSHA })
+      body: JSON.stringify({ path, content: editorEl.value, sha })
     });
-    if(!res.ok){ setErr('저장 실패'); info.textContent = (res.status+' '+(await res.text())); saving=false; return; }
+    if (!res.ok) {
+      saveState.textContent = `저장 실패 ${res.status}`;
+      saving = false;
+      return;
+    }
     const json = await res.json();
-    currentSHA = json.sha || currentSHA;
-    dirty = false; saving = false; setOK('저장됨');
-    info.textContent = `저장 완료: ${new Date().toLocaleTimeString()}`;
+    sha = json.sha || sha;
+    dirty = false; saving = false;
+    saveState.textContent = '저장됨';
+    info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
+    // 목록에 없던 새 파일이면 다시 목록 갱신
+    if (!cacheList.some(x => x.path === path)) loadList();
   }
 
-  window.addEventListener('load', ()=>{
-    const initial = filenameInput.value.trim();
-    if(initial) loadFile(initial);
-  });
+  // 초기 구동
+  (async ()=>{
+    document.getElementById('filename').value = `${NOTES_DIR}/inbox.md`;
+    await loadList();
+    await loadFile(`${NOTES_DIR}/inbox.md`);
+  })();
 })();
 </script>
 </body>
