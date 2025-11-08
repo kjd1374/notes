@@ -3,53 +3,76 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>My Diary</title>
+<title>Notes + Diary</title>
 <style>
   :root{--bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-  header{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:1}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:2}
   h1{margin:0;font-size:18px}
-  .datebar{display:flex;gap:8px;align-items:center}
-  .datebar button{padding:6px 10px;border:1px solid var(--line);background:#f8f9fb;border-radius:8px;cursor:pointer}
+  .tabs{display:flex;gap:8px}
+  .tab{padding:6px 12px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:#f6f7fb;cursor:pointer}
+  .tab.active{background:#fff;font-weight:600}
+  .subbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--muted)}
   .app{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 54px)}
   .sidebar{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
   .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
   .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:#f8f9fb;border-radius:8px;cursor:pointer}
   .list{overflow:auto}
   .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
   .item.active{background:#eef2ff}
   .item small{display:block;color:var(--muted)}
   .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
+  .path{display:flex;gap:8px;align-items:center}
+  .path input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
+  textarea{width:100%;height:60vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff}
+  .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
+  .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
   .meta{display:flex;gap:8px;flex-wrap:wrap}
   .meta select,.meta input{padding:8px;border:1px solid var(--line);border-radius:8px}
-  .path{font-size:12px;color:var(--muted)}
-  textarea{width:100%;height:60vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff}
-  .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}
-  .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
   @media (max-width:900px){ .app{grid-template-columns:1fr} .sidebar{display:none} }
 </style>
 </head>
 <body>
 <header>
-  <h1>📔 My Diary</h1>
-  <div class="datebar">
-    <button id="prevDay">←</button>
-    <input id="datePicker" type="date"/>
-    <button id="nextDay">→</button>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <h1>📝 Notes + 📔 Diary</h1>
+    <div class="tabs">
+      <div id="tabNotes" class="tab active">메모</div>
+      <div id="tabDiary" class="tab">일기</div>
+    </div>
+  </div>
+  <div class="subbar">
+    <div id="dateBar" style="display:none;align-items:center;gap:6px;">
+      <button id="prevDay">←</button>
+      <input id="datePicker" type="date"/>
+      <button id="nextDay">→</button>
+    </div>
+    <div id="today"></div>
   </div>
 </header>
 
 <div class="app">
   <aside class="sidebar">
-    <div class="toolbar">
-      <input id="search" placeholder="이 달의 일기 검색(파일명)"/>
+    <div class="toolbar" id="toolsNotes">
+      <input id="searchNotes" placeholder="메모 검색(파일명)"/>
+      <button id="newNote">새 노트</button>
+    </div>
+    <div class="toolbar" id="toolsDiary" style="display:none;">
+      <input id="searchDiary" placeholder="이 달의 일기 검색(파일명)"/>
     </div>
     <div id="list" class="list"></div>
   </aside>
 
   <main class="editor">
-    <div class="meta">
+    <div class="path">
+      <input id="filename"/>
+      <button id="loadBtn">불러오기</button>
+      <span id="saveState" class="badge">대기</span>
+    </div>
+
+    <div id="metaDiary" class="meta" style="display:none;">
       <select id="mood">
         <option value="">기분</option>
         <option>😊 행복</option><option>😌 편안</option><option>😥 우울</option>
@@ -61,11 +84,10 @@
         <option>⛈️ 뇌우</option><option>🌨️ 눈</option><option>🌫️ 안개</option>
       </select>
       <input id="tags" placeholder="#태그,쉼표로 구분"/>
-      <span id="saveState" class="badge">대기</span>
     </div>
 
-    <div class="path" id="pathLabel"></div>
-    <textarea id="editor" placeholder="오늘 하루를 기록해 보세요. (자동 저장)"></textarea>
+    <textarea id="editor" placeholder="내용을 입력하세요. (자동 저장)"></textarea>
+
     <div class="status">
       <span>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></span>
       <span id="info"></span>
@@ -75,72 +97,145 @@
 
 <script>
 (function(){
-  // ★ 본인 Worker 주소로 변경
+  // ★ 본인 Worker 주소로 변경하세요
   const API = 'https://notes-api.rusilhurpe.workers.dev';
-  const DIARY_DIR = 'diary';
 
-  // 날짜 유틸
-  const fmt = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const toPath = (d)=> `${DIARY_DIR}/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}.md`;
-  const monthDir = (d)=> `${DIARY_DIR}/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  // === 공통 ===
+  const listEl = document.getElementById('list');
+  const filenameEl = document.getElementById('filename');
+  const editorEl = document.getElementById('editor');
+  const loadBtn = document.getElementById('loadBtn');
+  const saveState = document.getElementById('saveState');
+  const info = document.getElementById('info');
+  const todayEl = document.getElementById('today');
 
-  // DOM
+  const tabNotes = document.getElementById('tabNotes');
+  const tabDiary = document.getElementById('tabDiary');
+  const toolsNotes = document.getElementById('toolsNotes');
+  const toolsDiary = document.getElementById('toolsDiary');
+
+  const searchNotes = document.getElementById('searchNotes');
+  const searchDiary = document.getElementById('searchDiary');
+  const newNoteBtn = document.getElementById('newNote');
+
+  const dateBar = document.getElementById('dateBar');
   const picker = document.getElementById('datePicker');
   const prevBtn = document.getElementById('prevDay');
   const nextBtn = document.getElementById('nextDay');
-  const listEl = document.getElementById('list');
-  const searchEl = document.getElementById('search');
+
+  const metaDiary = document.getElementById('metaDiary');
   const moodEl = document.getElementById('mood');
   const weatherEl = document.getElementById('weather');
   const tagsEl = document.getElementById('tags');
-  const editorEl = document.getElementById('editor');
-  const info = document.getElementById('info');
-  const pathLabel = document.getElementById('pathLabel');
-  const saveState = document.getElementById('saveState');
 
-  let currentDate = new Date();
+  let mode = 'notes'; // 'notes' | 'diary'
   let currentPath = '';
   let sha = null, dirty=false, saving=false, timer=null;
-  let cacheList=[];
+  let cacheList = [];
+  let currentDate = new Date();
 
-  // 초기 날짜
+  // 날짜/경로 유틸 (Diary)
+  const fmt = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const monthDir = (d)=> `diary/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  const toDiaryPath = (d)=> `${monthDir(d)}/${String(d.getDate()).padStart(2,'0')}.md`;
+  const pathToDate = (p)=>{ const m=p.match(/(\d{4})\/(\d{2})\/(\d{2})\.md$/); return m? new Date(+m[1],+m[2]-1,+m[3]) : new Date(); };
+
+  // 오늘 표시
+  const d = new Date();
+  todayEl.textContent = fmt(d);
   picker.valueAsDate = currentDate;
 
-  // 목록 로드 (해당 월)
-  async function loadList(d){
-    const dir = monthDir(d);
+  // 목록 불러오기
+  async function loadList(){
+    const dir = mode==='notes' ? 'notes' : monthDir(currentDate);
     const res = await fetch(`${API}/list?dir=${encodeURIComponent(dir)}`);
-    if (!res.ok){ listEl.innerHTML = `<div class="item">목록 실패 ${res.status}</div>`; return; }
-    const arr = await res.json(); // 현 달의 파일들만
-    cacheList = arr.map(x=>({name:x.name, path:x.path}));
+    if(!res.ok){ listEl.innerHTML=`<div class="item">목록 실패 ${res.status}</div>`; return; }
+    const arr = await res.json();
+    cacheList = arr;
     renderList();
   }
+
   function renderList(){
-    const q=(searchEl.value||'').toLowerCase();
+    const q = (mode==='notes' ? (searchNotes.value||'') : (searchDiary.value||'')).toLowerCase();
     listEl.innerHTML='';
-    const items = cacheList.filter(x=>x.name.toLowerCase().includes(q))
-      .sort((a,b)=>a.name.localeCompare(b.name)); // 01.md..31.md
-    if(items.length===0){ listEl.innerHTML = `<div class="item">이 달의 일기가 없습니다</div>`; return; }
+    let items = cacheList.filter(x => x.name.toLowerCase().includes(q));
+    items.sort((a,b)=> (mode==='notes' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)));
+    if(items.length===0){ listEl.innerHTML = `<div class="item">${mode==='notes'?'메모가 없습니다':'이 달의 일기가 없습니다'}</div>`; return; }
     for(const it of items){
       const el=document.createElement('div');
       el.className='item'+(it.path===currentPath?' active':'');
-      const day = it.name.replace('.md','');
-      el.innerHTML=`<div>${day}일</div><small>${it.path}</small>`;
-      el.onclick=()=> openDate(pathToDate(it.path));
+      if(mode==='notes'){
+        el.innerHTML=`<div>${it.name}</div><small>${it.path}</small>`;
+        el.onclick=()=> { filenameEl.value = it.path; loadFile(it.path); };
+      }else{
+        const day = it.name.replace('.md','');
+        el.innerHTML=`<div>${day}일</div><small>${it.path}</small>`;
+        el.onclick=()=> openDiary(pathToDate(it.path));
+      }
       listEl.appendChild(el);
     }
   }
-  searchEl.addEventListener('input', renderList);
+  searchNotes.addEventListener('input', renderList);
+  searchDiary.addEventListener('input', renderList);
 
-  // 경로→날짜
-  function pathToDate(path){
-    const m = path.match(/(\d{4})\/(\d{2})\/(\d{2})\.md$/);
-    if(!m) return new Date();
-    return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+  // 파일 불러오기
+  loadBtn.onclick = () => loadFile(filenameEl.value.trim());
+  async function loadFile(path){
+    if(!path) return;
+    info.textContent='불러오는 중...';
+    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
+    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; return; }
+    const json = await res.json();
+    editorEl.value = json.content || '';
+    sha = json.sha || null;
+    currentPath = path;
+    dirty=false; saveState.textContent='불러옴';
+    if(mode==='diary'){ // front-matter를 메타로 반영
+      const c = editorEl.value;
+      moodEl.value    = c.match(/mood:\s*(.*)/)?.[1]?.trim() || '';
+      weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
+      tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
+    }
+    loadList(); // 목록 갱신
   }
 
-  // 일기 템플릿
-  function templateFor(date){
+  // 자동 저장
+  editorEl.addEventListener('input', ()=>{ dirty=true; saveSoon(); });
+  function saveSoon(immediate=false){
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(saveNow, immediate?0:1200);
+  }
+  async function saveNow(){
+    if(saving || !dirty) return;
+    const path = filenameEl.value.trim();
+    if(!path) return;
+    saving = true; saveState.textContent='저장 중...';
+    const res = await fetch(`${API}/save`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path, content: editorEl.value, sha })
+    });
+    if(!res.ok){ saveState.textContent=`저장 실패 ${res.status}`; saving=false; return; }
+    const json = await res.json();
+    sha = json.sha || sha;
+    dirty=false; saving=false; saveState.textContent='저장됨';
+    info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
+    // 새 파일이면 목록 갱신
+    if(!cacheList.some(x=>x.path===path)) loadList();
+  }
+
+  // 메모 모드: 새 노트
+  newNoteBtn.onclick = ()=>{
+    const now=new Date();
+    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
+    const path = `notes/${name}`;
+    filenameEl.value = path; currentPath=path; sha=null;
+    editorEl.value = `# ${name.replace('.md','')}\n\n`;
+    dirty=true; saveSoon(true);
+  };
+
+  // 일기 모드: 날짜 이동/열기
+  function diaryTemplate(date){
     const ymd = fmt(date);
     return `---
 date: ${ymd}
@@ -161,73 +256,64 @@ tags: ${tagsEl.value||''}
 - 
 `;
   }
-
-  // 파일 열기
-  async function openDate(date){
+  async function openDiary(date){
     currentDate = date;
     picker.valueAsDate = date;
-    currentPath = toPath(date);
-    pathLabel.textContent = currentPath;
-    info.textContent='불러오는 중...'; saveState.textContent='대기';
-    const res = await fetch(`${API}/load?path=${encodeURIComponent(currentPath)}`);
+    const path = toDiaryPath(date);
+    filenameEl.value = path; currentPath = path;
+    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
     if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; return; }
     const {content, sha:shaVal} = await res.json();
-    sha = shaVal || null;
+    sha=shaVal||null;
     if(!content){
-      editorEl.value = templateFor(date); // 새 파일 템플릿
-      dirty = true; saveSoon(true);      // 즉시 생성 저장
+      editorEl.value = diaryTemplate(date);
+      dirty=true; saveSoon(true);
     }else{
       editorEl.value = content;
       dirty=false; saveState.textContent='불러옴';
+      const c = content;
+      moodEl.value    = c.match(/mood:\s*(.*)/)?.[1]?.trim() || '';
+      weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
+      tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
     }
-    // 월 목록 갱신
-    loadList(date);
-    // 메타 자동 추출 (front matter 대충 파싱)
-    const mMood = content?.match(/mood:\s*(.*)/)?.[1]?.trim(); if(mMood) moodEl.value=mMood;
-    const mWea  = content?.match(/weather:\s*(.*)/)?.[1]?.trim(); if(mWea) weatherEl.value=mWea;
-    const mTags = content?.match(/tags:\s*(.*)/)?.[1]?.trim(); if(mTags) tagsEl.value=mTags;
+    loadList();
   }
-
-  // 저장
-  editorEl.addEventListener('input', ()=>{ dirty=true; saveSoon(); });
+  prevBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-1));
+  nextBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()+1));
+  picker.onchange   = ()=> openDiary(new Date(picker.value));
   [moodEl,weatherEl,tagsEl].forEach(el=> el.addEventListener('change', ()=>{
-    // front-matter 갱신(있으면 바꾸고, 없으면 추가)
     let t=editorEl.value;
-    t = t.replace(/mood:\s*.*/,'mood: '+(moodEl.value||''));
-    t = t.replace(/weather:\s*.*/,'weather: '+(weatherEl.value||''));
-    if(/tags:\s*.*/.test(t)) t=t.replace(/tags:\s*.*/,'tags: '+(tagsEl.value||''));
-    else t=t.replace(/---\n\n/,'---\n\ntags: '+(tagsEl.value||'')+'\n\n');
-    editorEl.value=t; dirty=true; saveSoon();
+    t = /mood:\s*.*/.test(t)    ? t.replace(/mood:\s*.*/,'mood: '+(moodEl.value||''))       : t;
+    t = /weather:\s*.*/.test(t) ? t.replace(/weather:\s*.*/,'weather: '+(weatherEl.value||'')) : t;
+    if(/tags:\s*.*/.test(t)) t = t.replace(/tags:\s*.*/,'tags: '+(tagsEl.value||''));
+    else t = t.replace(/---\n\n/,'---\n\ntags: '+(tagsEl.value||'')+'\n\n');
+    editorEl.value = t; dirty=true; saveSoon();
   }));
 
-  function saveSoon(immediate=false){
-    if(timer) clearTimeout(timer);
-    timer = setTimeout(saveNow, immediate?0:1200);
-  }
-  async function saveNow(){
-    if(saving || !dirty) return;
-    saving = true; saveState.textContent='저장 중...';
-    const res = await fetch(`${API}/save`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ path: currentPath, content: editorEl.value, sha })
-    });
-    if(!res.ok){ saveState.textContent=`실패 ${res.status}`; saving=false; return; }
-    const json = await res.json();
-    sha = json.sha || sha;
-    dirty=false; saving=false; saveState.textContent='저장됨';
-    info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
-    // 목록에 없던 새 파일이면 월 목록 갱신
-    if(!cacheList.some(x=>x.path===currentPath)) loadList(currentDate);
-  }
+  // 탭 전환
+  function switchTab(next){
+    mode = next;
+    // 탭 UI
+    tabNotes.classList.toggle('active', mode==='notes');
+    tabDiary.classList.toggle('active', mode==='diary');
+    toolsNotes.style.display = (mode==='notes')?'flex':'none';
+    toolsDiary.style.display = (mode==='diary')?'flex':'none';
+    dateBar.style.display    = (mode==='diary')?'flex':'none';
+    metaDiary.style.display  = (mode==='diary')?'flex':'none';
 
-  // 날짜 이동
-  prevBtn.onclick = ()=> openDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()-1));
-  nextBtn.onclick = ()=> openDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()+1));
-  picker.onchange   = ()=> openDate(new Date(picker.value));
+    if(mode==='notes'){
+      filenameEl.value = 'notes/inbox.md';
+      loadList();
+      loadFile('notes/inbox.md');
+    }else{
+      openDiary(currentDate);
+    }
+  }
+  tabNotes.onclick = ()=> switchTab('notes');
+  tabDiary.onclick = ()=> switchTab('diary');
 
-  // 시작
-  openDate(currentDate);
+  // 시작: 메모 모드 기본
+  switchTab('notes');
 })();
 </script>
 </body>
