@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>My Notes</title>
 <style>
   body{max-width:900px;margin:24px auto;padding:0 16px;font-family:system-ui,-apple-system,Segoe UI,Roboto}
@@ -13,163 +13,90 @@
   .row>*{flex:1}
   textarea{height:60vh;padding:12px;border:1px solid #ddd;border-radius:8px}
   .badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid #ccc}
-  .ok{border-color:#5cb85c}
-  .warn{border-color:#f0ad4e}
-  .err{border-color:#d9534f}
+  .ok{border-color:#5cb85c}.warn{border-color:#f0ad4e}.err{border-color:#d9534f}
   footer{margin-top:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <header>
   <h1 style="margin:0;">📝 My Notes</h1>
-  <span id="status" class="badge warn">토큰 필요</span>
+  <span id="status" class="badge warn">준비</span>
 </header>
 
-<div class="row" style="margin-top:12px;">
-  <input id="token" type="password" placeholder="GitHub Personal Access Token (브라우저 세션에만 저장)" />
-  <button id="saveToken" style="flex:0 0 auto;">사용</button>
-</div>
-
 <div class="row" style="margin-top:8px;">
-  <input id="filename" placeholder="파일 경로 (예: inbox.md 또는 notes/today.md)" value="inbox.md" />
+  <input id="filename" placeholder="파일 경로 (예: inbox.md 또는 notes/today.md)" value="inbox.md"/>
   <button id="loadBtn" style="flex:0 0 auto;">불러오기</button>
 </div>
 
-<textarea id="editor" placeholder="여기에 메모를 입력하세요. (수정 시 자동 저장)"></textarea>
+<textarea id="editor" placeholder="여기에 메모를 입력하세요. (자동 저장)"></textarea>
 
 <footer>
-  <div>
-    리포지토리: <strong id="repoLabel"></strong>
-    &nbsp;|&nbsp; 브랜치: <strong>main</strong>
-  </div>
+  <div>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></div>
   <div id="info"></div>
 </footer>
 
 <script>
 (function(){
-  // === 설정: 본인 GitHub 사용자명과 리포 이름 ===
-  const owner = location.hostname.includes('.github.io')
-                  ? location.hostname.split('.github.io')[0]
-                  : 'kjd1374'; // 예: 'kjd1374'
-  const repo  = 'notes';
-  document.getElementById('repoLabel').textContent = owner + '/' + repo;
+  // === 여기만 본인 Worker 주소로 바꾸세요 ===
+  const API = 'https://notes-api.rusilhurpe.workers.dev';
 
-  // === 상태 ===
   const status = document.getElementById('status');
   const info = document.getElementById('info');
   const editor = document.getElementById('editor');
   const filenameInput = document.getElementById('filename');
-  const tokenInput = document.getElementById('token');
-  const saveTokenBtn = document.getElementById('saveToken');
   const loadBtn = document.getElementById('loadBtn');
 
-  let token = sessionStorage.getItem('gh_token') || '';
   let currentPath = '';
   let currentSHA = null;
   let dirty = false;
   let saving = false;
   let saveTimer = null;
 
-  if(token){ tokenInput.value = token; setOK('토큰 설정됨'); } else { setWarn('토큰 필요'); }
-
-  saveTokenBtn.onclick = () => {
-    token = tokenInput.value.trim();
-    sessionStorage.setItem('gh_token', token);
-    setOK('토큰 설정됨');
-  };
-
-  loadBtn.onclick = () => {
-    loadFile(filenameInput.value.trim());
-  };
-
-  editor.addEventListener('input', () => {
-    dirty = true;
-    scheduleSave();
-  });
+  loadBtn.onclick = () => loadFile(filenameInput.value.trim());
+  editor.addEventListener('input', ()=>{ dirty = true; scheduleSave(); });
 
   function setOK(msg){ status.className='badge ok'; status.textContent=msg; }
   function setWarn(msg){ status.className='badge warn'; status.textContent=msg; }
   function setErr(msg){ status.className='badge err'; status.textContent=msg; }
 
-  function b64encode(str){
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  function b64decode(b64){
-    return decodeURIComponent(escape(atob(b64)));
-  }
-
   async function loadFile(path){
-    if(!token){ setWarn('토큰 필요'); return alert('먼저 토큰을 입력하세요.'); }
     if(!path) return alert('파일 경로를 입력하세요.');
     info.textContent = '불러오는 중...';
-    currentPath = path;
-    currentSHA = null;
-    dirty = false;
+    currentPath = path; currentSHA = null; dirty = false;
 
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }});
+    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
     if(res.status===404){
-      editor.value = '';
-      currentSHA = null;
-      info.textContent = '새 파일 (아직 없음)';
-      scheduleSave(true); // 바로 생성
-      return;
+      editor.value=''; currentSHA=null; info.textContent='새 파일'; scheduleSave(true); return;
     }
-    if(!res.ok){
-      setErr('불러오기 실패'); info.textContent = (res.status+' '+res.statusText);
-      return;
-    }
+    if(!res.ok){ setErr('불러오기 실패'); info.textContent = (res.status+' '+res.statusText); return; }
     const json = await res.json();
-    currentSHA = json.sha;
-    editor.value = json.content ? b64decode(json.content) : '';
+    editor.value = json.content || '';
+    currentSHA = json.sha || null;
     info.textContent = '불러옴: ' + path;
     setOK('준비됨');
   }
 
   function scheduleSave(immediate=false){
     if(saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveNow, immediate? 0 : 1200); // 타이핑 멈춘 뒤 1.2초 후 저장
+    saveTimer = setTimeout(saveNow, immediate? 0 : 1200);
   }
 
   async function saveNow(){
-    if(saving || !dirty) return;
-    if(!token || !currentPath){ return; }
-    saving = true;
-    setWarn('저장 중...');
-    const content = b64encode(editor.value);
-    const body = {
-      message: `chore(notes): auto-save ${currentPath}`,
-      content,
-      branch: 'main'
-    };
-    if(currentSHA) body.sha = currentSHA;
-
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(currentPath)}`;
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+    if(saving || !dirty || !currentPath) return;
+    saving = true; setWarn('저장 중...');
+    const res = await fetch(`${API}/save`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path: currentPath, content: editor.value, sha: currentSHA })
     });
-
-    if(!res.ok){
-      setErr('저장 실패'); info.textContent = (res.status+' '+res.statusText);
-      saving = false;
-      return;
-    }
+    if(!res.ok){ setErr('저장 실패'); info.textContent = (res.status+' '+(await res.text())); saving=false; return; }
     const json = await res.json();
-    currentSHA = json.content && json.content.sha ? json.content.sha : currentSHA;
-    dirty = false;
-    saving = false;
-    setOK('저장됨');
+    currentSHA = json.sha || currentSHA;
+    dirty = false; saving = false; setOK('저장됨');
     info.textContent = `저장 완료: ${new Date().toLocaleTimeString()}`;
   }
 
-  // 첫 로드 시 기본 파일
-  window.addEventListener('load', ()=> {
+  window.addEventListener('load', ()=>{
     const initial = filenameInput.value.trim();
     if(initial) loadFile(initial);
   });
@@ -177,4 +104,3 @@
 </script>
 </body>
 </html>
-
