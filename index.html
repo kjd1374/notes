@@ -5,37 +5,53 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Notes + Diary</title>
 <style>
-  :root{--bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280}
+  :root{
+    --bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;--ink:#111827;--ink-weak:#4b5563;
+    --accent:#111827;--accent-ink:#fff;--danger:#dc2626;--danger-ink:#fff;
+    --chip:#f3f4f6;
+  }
+  [data-theme="dark"]{
+    --bg:#0b0f14;--line:#1f2937;--muted:#9ca3af;--ink:#e5e7eb;--ink-weak:#94a3b8;
+    --accent:#3b82f6;--accent-ink:#fff;--danger:#ef4444;--danger-ink:#fff;
+    --chip:#111827;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:2}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff0;position:sticky;top:0;backdrop-filter:saturate(180%) blur(8px);z-index:3}
   h1{margin:0;font-size:18px}
   .tabs{display:flex;gap:8px}
-  .tab{padding:6px 12px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:#f6f7fb;cursor:pointer}
-  .tab.active{background:#fff;font-weight:600}
+  .tab{padding:6px 12px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--chip);cursor:pointer}
+  .tab.active{background:#fff0;border-color:var(--ink);font-weight:600}
   .subbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--muted)}
   .app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 54px)}
-  .sidebar{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+  .sidebar{border-right:1px solid var(--line);background:#fff0;display:flex;flex-direction:column;min-height:0}
   .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
-  .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px}
-  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:#f8f9fb;border-radius:8px;cursor:pointer}
+  .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
+  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:var(--chip);border-radius:8px;cursor:pointer;color:var(--ink)}
   .list{overflow:auto}
   .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-  .item.active{background:#eef2ff}
+  .item.active{background:rgba(59,130,246,.12)}
   .item .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
   .path{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .path input{flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:8px}
+  .path input{flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
   .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}
-  .btn.primary{background:#111827;color:#fff;border-color:#111827}
-  textarea{width:100%;height:60vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff}
+  .btn{padding:8px 12px;border:1px solid var(--line);background:#fff0;border-radius:8px;cursor:pointer;color:var(--ink)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .btn.danger{background:var(--danger);color:var(--danger-ink);border-color:var(--danger)}
+  textarea{width:100%;height:60vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff0;color:var(--ink)}
   .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
   .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
   .meta{display:flex;gap:8px;flex-wrap:wrap}
-  .meta select,.meta input{padding:8px;border:1px solid var(--line);border-radius:8px}
+  .meta select,.meta input{padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
+  .rightbar{display:flex;gap:8px;align-items:center}
+  .chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--chip);font-size:12px;color:var(--ink-weak)}
 
-  /* ✅ 모바일/태블릿: 리스트가 위, 에디터가 아래(둘 다 항상 보임) */
+  /* Toast */
+  #toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#111827;color:#fff;border-radius:10px;opacity:0;pointer-events:none;transition:.3s;z-index:50}
+  #toast.show{opacity:1;transform:translateY(-6px)}
+
+  /* 모바일: 리스트 위, 에디터 아래 */
   @media (max-width:900px){
     .app{grid-template-columns:1fr;gap:12px;padding:8px}
     .sidebar{border-right:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -52,13 +68,16 @@
       <div id="tabDiary" class="tab">일기</div>
     </div>
   </div>
-  <div class="subbar">
-    <div id="dateBar" style="display:none;align-items:center;gap:6px;">
-      <button id="prevDay" class="btn">←</button>
-      <input id="datePicker" type="date"/>
-      <button id="nextDay" class="btn">→</button>
+  <div class="rightbar">
+    <span id="today" class="chip"></span>
+    <button id="themeBtn" class="btn" title="다크모드 토글">🌓</button>
+    <div class="subbar">
+      <div id="dateBar" style="display:none;align-items:center;gap:6px;">
+        <button id="prevDay" class="btn" title="이전">←</button>
+        <input id="datePicker" type="date"/>
+        <button id="nextDay" class="btn" title="다음">→</button>
+      </div>
     </div>
-    <div id="today"></div>
   </div>
 </header>
 
@@ -67,7 +86,7 @@
     <!-- 메모 툴바 -->
     <div class="toolbar" id="toolsNotes">
       <input id="searchNotes" placeholder="메모 검색(제목)"/>
-      <button id="newNote" class="btn">새 노트</button>
+      <button id="newNote" class="btn" title="새 메모 (Ctrl/Cmd+N)">새 메모</button>
     </div>
     <!-- 일기 툴바 -->
     <div class="toolbar" id="toolsDiary" style="display:none;">
@@ -82,9 +101,9 @@
     <div class="path">
       <input id="filename" placeholder="경로 (예: notes/inbox.md 또는 diary/2025/11/08.md)"/>
       <div class="actions">
-        <button id="loadBtn" class="btn">불러오기</button>
-        <!-- ✅ 자동저장 제거: 저장 버튼으로만 저장 -->
-        <button id="saveBtn" class="btn primary">저장</button>
+        <button id="loadBtn" class="btn" title="불러오기">불러오기</button>
+        <button id="saveBtn" class="btn primary" title="저장 (Ctrl/Cmd+S)">저장</button>
+        <button id="deleteBtn" class="btn danger" title="삭제 (Ctrl/Cmd+Backspace)">삭제</button>
         <span id="saveState" class="badge">대기</span>
       </div>
     </div>
@@ -113,33 +132,34 @@
   </main>
 </div>
 
+<div id="toast"></div>
+
 <script>
 (function(){
   /* ===== 설정 ===== */
-  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ← 너의 Worker 주소
+  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ★ 본인 Worker 주소
 
-  /* ===== 공통 DOM ===== */
+  /* ===== DOM ===== */
   const listEl = document.getElementById('list');
   const filenameEl = document.getElementById('filename');
   const editorEl = document.getElementById('editor');
   const loadBtn = document.getElementById('loadBtn');
   const saveBtn = document.getElementById('saveBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
   const saveState = document.getElementById('saveState');
   const info = document.getElementById('info');
   const todayEl = document.getElementById('today');
+  const themeBtn = document.getElementById('themeBtn');
 
-  /* 탭/툴바 */
   const tabNotes = document.getElementById('tabNotes');
   const tabDiary = document.getElementById('tabDiary');
   const toolsNotes = document.getElementById('toolsNotes');
   const toolsDiary = document.getElementById('toolsDiary');
 
-  /* 검색/새노트 */
   const searchNotes = document.getElementById('searchNotes');
   const searchDiary = document.getElementById('searchDiary');
   const newNoteBtn = document.getElementById('newNote');
 
-  /* 일기 UI */
   const dateBar = document.getElementById('dateBar');
   const picker = document.getElementById('datePicker');
   const prevBtn = document.getElementById('prevDay');
@@ -157,24 +177,27 @@
   let currentDate = new Date();
   let dirty = false;
 
-  /* 오늘 날짜 표시 */
+  // 오늘 표시 + 테마
   const fmt = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   todayEl.textContent = fmt(new Date());
   picker.valueAsDate = currentDate;
 
-  /* Diary 경로 유틸 */
+  const savedTheme = localStorage.getItem('theme');
+  if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+  themeBtn.onclick = ()=>{
+    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', cur);
+    localStorage.setItem('theme', cur);
+  };
+
+  /* ===== Diary 경로 ===== */
   const monthDir = (d)=> `diary/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
   const toDiaryPath = (d)=> `${monthDir(d)}/${String(d.getDate()).padStart(2,'0')}.md`;
   const pathToDate = (p)=>{ const m=p.match(/(\d{4})\/(\d{2})\/(\d{2})\.md$/); return m? new Date(+m[1],+m[2]-1,+m[3]) : new Date(); };
 
-  /* ===== 제목 캐시/추출 (리스트에는 제목만 표시) ===== */
+  /* ===== 제목 캐시/추출 (리스트 제목만 표시) ===== */
   const titleCache = new Map();
-
-  function fallbackTitle(path){
-    const base = path.split('/').pop().replace(/\.md$/i,'');
-    return base.replace(/[-_]+/g,' ');
-  }
-
+  function fallbackTitle(path){ const base = path.split('/').pop().replace(/\.md$/i,''); return base.replace(/[-_]+/g,' '); }
   async function getTitle(path){
     if (titleCache.has(path)) return titleCache.get(path);
     try{
@@ -195,7 +218,6 @@
       const t=fallbackTitle(path); titleCache.set(path,t); return t;
     }
   }
-
   function updateTitleCacheFromEditor(path){
     const line = editorEl.value.split(/\r?\n/).find(l=>/^#\s+/.test(l));
     const title = (line ? line.replace(/^#\s+/, '').trim() : '') || titleCache.get(path) || fallbackTitle(path);
@@ -210,19 +232,15 @@
     cacheList = await res.json();
     renderList();
   }
-
   async function renderList(){
     const q = (mode==='notes' ? (searchNotes.value||'') : (searchDiary.value||'')).toLowerCase();
     listEl.innerHTML='';
     let items = cacheList.slice();
-    // 제목 기준 정렬 준비(캐시 없으면 파일명으로 임시 정렬)
     items.sort((a,b)=> (mode==='notes' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)));
-
     if(items.length===0){
       listEl.innerHTML = `<div class="item">${mode==='notes'?'메모가 없습니다':'이 달의 일기가 없습니다'}</div>`;
       return;
     }
-
     for(const it of items){
       const el = document.createElement('div');
       el.className = 'item' + (it.path===currentPath?' active':'');
@@ -232,27 +250,28 @@
         else { openDiary(pathToDate(it.path)); }
       };
       listEl.appendChild(el);
-
-      // 제목 비동기 채우기 + 검색 반영
       getTitle(it.path).then(title=>{
         if(q && !title.toLowerCase().includes(q)){ el.remove(); return; }
         el.querySelector('.title').textContent = title;
       });
     }
   }
-
   searchNotes.addEventListener('input', renderList);
   searchDiary.addEventListener('input', renderList);
 
-  /* ===== 불러오기/저장 ===== */
+  /* ===== 네비/토스트 ===== */
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+
+  /* ===== 불러오기/저장/삭제 ===== */
   loadBtn.onclick = ()=> doLoad(filenameEl.value.trim());
   saveBtn.onclick = ()=> doSave();
+  deleteBtn.onclick = ()=> doDelete();
 
   async function doLoad(path){
     if(!path) return;
     info.textContent='불러오는 중...';
     const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; return; }
+    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; toast('불러오기 실패'); return; }
     const json = await res.json();
     editorEl.value = json.content || '';
     sha = json.sha || null;
@@ -267,6 +286,7 @@
     }
     updateTitleCacheFromEditor(path);
     loadList();
+    toast('불러왔습니다');
   }
 
   async function doSave(){
@@ -278,23 +298,57 @@
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ path, content: editorEl.value, sha })
     });
-    if(!res.ok){ saveState.textContent=`저장 실패 ${res.status}`; return; }
+    if(!res.ok){ saveState.textContent=`저장 실패 ${res.status}`; toast('저장 실패'); return; }
     const json = await res.json();
     sha = json.sha || sha;
     dirty = false;
     saveState.textContent='저장됨';
     info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
     updateTitleCacheFromEditor(path);
-    if(!cacheList.some(x=>x.path===path)) loadList();
-    else renderList(); // 제목 갱신 반영
+    if(!cacheList.some(x=>x.path===path)) loadList(); else renderList();
+    toast('저장 완료');
   }
 
-  // 변경 감지(이탈 경고만)
+  async function doDelete(){
+    const path = filenameEl.value.trim();
+    if(!path){ alert('삭제할 파일 경로가 없습니다.'); return; }
+    if(!sha){
+      // sha가 없을 때는 최신 sha를 한번 가져와서 삭제
+      const r = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
+      if(r.ok){ const j = await r.json(); sha = j.sha || sha; }
+    }
+    if(!sha){ alert('삭제할 파일을 먼저 불러오세요.'); return; }
+    if(!confirm('정말 삭제하시겠어요? 이 작업은 되돌릴 수 없습니다.')) return;
+
+    const res = await fetch(`${API}/delete`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path, sha })
+    });
+    if(!res.ok){ toast('삭제 실패'); return; }
+    // UI 초기화
+    editorEl.value = '';
+    filenameEl.value = '';
+    sha = null; currentPath = '';
+    saveState.textContent='대기';
+    toast('삭제 완료');
+    loadList();
+  }
+
+  // 변경 감지(이탈 경고)
   editorEl.addEventListener('input', ()=>{ dirty=true; saveState.textContent='수정됨'; });
   window.addEventListener('beforeunload', (e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 
+  /* ===== 단축키 ===== */
+  document.addEventListener('keydown', (e)=>{
+    const mod = e.metaKey || e.ctrlKey;
+    if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); doSave(); }
+    if(mod && e.key.toLowerCase()==='n'){ e.preventDefault(); newNote(); }
+    if(mod && (e.key==='Backspace' || e.key==='Delete')){ e.preventDefault(); doDelete(); }
+  });
+
   /* ===== 메모: 새 노트 ===== */
-  newNoteBtn.onclick = ()=>{
+  function newNote(){
     const now=new Date();
     const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
     const path = `notes/${name}`;
@@ -303,7 +357,9 @@
     dirty=true; saveState.textContent='수정됨';
     titleCache.set(path, name.replace('.md',''));
     renderList();
-  };
+    toast('새 메모 시작');
+  }
+  newNoteBtn.onclick = newNote;
 
   /* ===== 일기 ===== */
   function diaryTemplate(date){
@@ -327,14 +383,13 @@ tags: ${tagsEl.value||''}
 - 
 `;
   }
-
   async function openDiary(date){
     currentDate = date;
     picker.valueAsDate = date;
     const path = toDiaryPath(date);
     filenameEl.value = path; currentPath = path;
     const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; return; }
+    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; toast('불러오기 실패'); return; }
     const {content, sha:shaVal} = await res.json();
     sha=shaVal||null;
     if(!content){
@@ -351,7 +406,6 @@ tags: ${tagsEl.value||''}
     updateTitleCacheFromEditor(path);
     loadList();
   }
-
   prevBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-1));
   nextBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()+1));
   picker.onchange   = ()=> openDiary(new Date(picker.value));
@@ -376,7 +430,8 @@ tags: ${tagsEl.value||''}
     toolsDiary.style.display = (mode==='diary')?'flex':'none';
     dateBar.style.display    = (mode==='diary')?'flex':'none';
     metaDiary.style.display  = (mode==='diary')?'flex':'none';
-    dirty=false;
+    dirty = false;
+
     if(mode==='notes'){
       filenameEl.value='notes/inbox.md';
       doLoad('notes/inbox.md');
