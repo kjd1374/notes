@@ -3,301 +3,258 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Simple Notes</title>
+<title>My GitHub Notes</title>
 <style>
-  :root{
-    --bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;--ink:#111827;--ink-weak:#4b5563;
-    --accent:#111827;--accent-ink:#fff;--danger:#dc2626;--danger-ink:#fff;
-    --chip:#f3f4f6;
-  }
-  [data-theme="dark"]{
-    --bg:#0b0f14;--line:#1f2937;--muted:#9ca3af;--ink:#e5e7eb;--ink-weak:#94a3b8;
-    --accent:#3b82f6;--accent-ink:#fff;--danger:#ef4444;--danger-ink:#fff;
-    --chip:#111827;
-  }
+  :root{ --bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;--ink:#111827;--chip:#f3f4f6;--accent:#111827; }
+  [data-theme="dark"]{ --bg:#0b0f14;--line:#1f2937;--muted:#9ca3af;--ink:#e5e7eb;--chip:#111827;--accent:#3b82f6; }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff0;position:sticky;top:0;backdrop-filter:saturate(180%) blur(8px);z-index:3}
-  h1{margin:0;font-size:18px}
-  .app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 54px)}
-  .sidebar{border-right:1px solid var(--line);background:#fff0;display:flex;flex-direction:column;min-height:0}
-  .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
-  .toolbar input{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
-  .toolbar button{padding:8px 10px;border:1px solid var(--line);background:var(--chip);border-radius:8px;cursor:pointer;color:var(--ink)}
-  .list{overflow:auto}
-  .item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-  .item.active{background:rgba(59,130,246,.12)}
-  .item .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .editor{padding:14px;display:flex;flex-direction:column;gap:8px}
-  .path{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .path input{flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{padding:8px 12px;border:1px solid var(--line);background:#fff0;border-radius:8px;cursor:pointer;color:var(--ink)}
-  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-  .btn.danger{background:var(--danger);color:var(--danger-ink);border-color:var(--danger)}
-  textarea{width:100%;height:70vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff0;color:var(--ink)}
-  .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
-  .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden;}
   
-  /* Toast */
-  #toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#111827;color:#fff;border-radius:10px;opacity:0;pointer-events:none;transition:.3s;z-index:50}
-  #toast.show{opacity:1;transform:translateY(-6px)}
+  .app{display:grid;grid-template-columns:300px 1fr;height:100%;}
+  
+  /* 사이드바 */
+  .sidebar{border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--bg);}
+  .header{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .header h1{font-size:18px;margin:0;}
+  .search-box{padding:10px;border-bottom:1px solid var(--line);display:flex;gap:5px;}
+  .search-box input{flex:1;padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);}
+  .list{flex:1;overflow-y:auto;}
+  .item{padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .item:hover{background:var(--chip);}
+  .item.active{background:rgba(59,130,246,0.1);border-left:3px solid var(--accent);}
+  .item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .item .d{font-size:11px;color:var(--muted);margin-top:2px;}
 
-  /* 모바일 */
-  @media (max-width:900px){
-    .app{grid-template-columns:1fr;gap:12px;padding:8px}
-    .sidebar{border-right:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-    .editor{padding:8px}
-  }
+  /* 에디터 영역 */
+  .main{display:flex;flex-direction:column;height:100%;}
+  .toolbar{padding:10px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .status{font-size:12px;color:var(--muted);font-family:monospace;}
+  .editor-area{flex:1;padding:30px 40px;display:flex;flex-direction:column;overflow-y:auto;}
+  
+  #noteTitle{ font-size:28px;font-weight:bold;border:none;background:transparent;color:var(--ink);width:100%;outline:none;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid transparent; }
+  #noteTitle:focus{ border-bottom-color:var(--line); }
+  #editor{ flex:1;border:none;resize:none;background:transparent;color:var(--ink);font-size:16px;line-height:1.6;outline:none;font-family:inherit; }
+  
+  button{cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--chip);color:var(--ink);}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  
+  @media(max-width:700px){ .app{grid-template-columns:1fr;} .sidebar{display:none;} }
 </style>
 </head>
 <body>
-<header>
-  <h1>📝 Simple Notes</h1>
-  <div>
-    <button id="themeBtn" class="btn" title="다크모드 토글">🌓</button>
-  </div>
-</header>
-
 <div class="app">
   <aside class="sidebar">
-    <div class="toolbar">
-      <input id="searchNotes" placeholder="메모 검색..."/>
-      <button id="newNote" class="btn" title="새 메모 (Ctrl/Cmd+N)">+</button>
+    <div class="header">
+      <h1>📒 GitHub Notes</h1>
+      <button id="themeBtn">🌓</button>
+    </div>
+    <div class="search-box">
+      <input id="search" placeholder="검색...">
+      <button id="newBtn">+</button>
     </div>
     <div id="list" class="list"></div>
   </aside>
-
-  <main class="editor">
-    <div class="path">
-      <input id="filename" placeholder="경로 (예: notes/idea.md)"/>
-      <div class="actions">
-        <button id="loadBtn" class="btn" title="불러오기">불러오기</button>
-        <button id="saveBtn" class="btn primary" title="저장 (Ctrl/Cmd+S)">저장</button>
-        <button id="deleteBtn" class="btn danger" title="삭제">삭제</button>
-        <span id="saveState" class="badge">대기</span>
+  <main class="main">
+    <div class="toolbar">
+      <span id="filePath" class="status">준비됨</span>
+      <div style="display:flex;gap:8px">
+        <button id="saveBtn" class="primary">저장</button>
+        <button id="delBtn">삭제</button>
       </div>
     </div>
-
-    <textarea id="editor" placeholder="내용을 입력하세요."></textarea>
-
-    <div class="status">
-      <span>Repository: <strong>notes</strong></span>
-      <span id="info"></span>
+    <div class="editor-area">
+      <input id="noteTitle" placeholder="제목을 입력하세요">
+      <textarea id="editor" placeholder="내용을 입력하세요..."></textarea>
     </div>
   </main>
 </div>
-
-<div id="toast"></div>
-
 <script>
 (function(){
-  /* ===== 설정 ===== */
-  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ★ Worker 주소 유지
+  /* ★★★ 여기가 제일 중요합니다!!! ★★★ 
+     Cloudflare Worker 주소를 따옴표 안에 정확히 넣어주세요.
+     (예: https://notes-api.rusilhurpe.workers.dev)
+  */
+  const API = 'https://notes-api.rusilhurpe.workers.dev'; 
 
-  /* ===== DOM Elements ===== */
   const listEl = document.getElementById('list');
-  const filenameEl = document.getElementById('filename');
+  const titleEl = document.getElementById('noteTitle');
   const editorEl = document.getElementById('editor');
-  const loadBtn = document.getElementById('loadBtn');
-  const saveBtn = document.getElementById('saveBtn');
-  const deleteBtn = document.getElementById('deleteBtn');
-  const saveState = document.getElementById('saveState');
-  const info = document.getElementById('info');
-  const themeBtn = document.getElementById('themeBtn');
-  const searchNotes = document.getElementById('searchNotes');
-  const newNoteBtn = document.getElementById('newNote');
-
-  /* ===== State ===== */
+  const pathEl = document.getElementById('filePath');
+  const searchEl = document.getElementById('search');
+  
   let currentPath = '';
   let sha = null;
   let cacheList = [];
   let dirty = false;
+  
+  const titleMap = {};
 
-  /* ===== Theme Init ===== */
-  const savedTheme = localStorage.getItem('theme');
-  if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
-  themeBtn.onclick = ()=>{
-    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', cur);
-    localStorage.setItem('theme', cur);
+  if(localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme','dark');
+  document.getElementById('themeBtn').onclick = () => {
+    const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+    document.documentElement.setAttribute('data-theme', isDark?'light':'dark');
+    localStorage.setItem('theme', isDark?'light':'dark');
   };
 
-  /* ===== Helper: Title Extraction ===== */
-  const titleCache = new Map();
-  function fallbackTitle(path){ const base = path.split('/').pop().replace(/\.md$/i,''); return base.replace(/[-_]+/g,' '); }
-  
-  async function getTitle(path){
-    if (titleCache.has(path)) return titleCache.get(path);
-    try{
-      const r = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-      if(!r.ok){ const t=fallbackTitle(path); titleCache.set(path,t); return t; }
-      const {content} = await r.json();
-      let title = '';
-      if(content){
-        const lines = content.split(/\r?\n/);
-        const h = lines.find(l=>/^#\s+/.test(l));
-        title = h ? h.replace(/^#\s+/,'').trim() : (lines.find(l=>l.trim())||'').trim();
-      }
-      if(!title) title = fallbackTitle(path);
-      if(title.length>80) title = title.slice(0,80)+'…';
-      titleCache.set(path,title);
-      return title;
-    }catch{
-      const t=fallbackTitle(path); titleCache.set(path,t); return t;
-    }
+  function makeFilename(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())+'.md';
   }
 
-  function updateTitleCacheFromEditor(path){
-    const line = editorEl.value.split(/\r?\n/).find(l=>/^#\s+/.test(l));
-    const title = (line ? line.replace(/^#\s+/, '').trim() : '') || titleCache.get(path) || fallbackTitle(path);
-    titleCache.set(path, title);
-  }
+  function rawTitle(path){ return path.split('/').pop().replace('.md',''); }
 
-  /* ===== List Logic ===== */
   async function loadList(){
-    // 일기 모드가 없으므로 무조건 'notes' 폴더만 조회
-    const res = await fetch(`${API}/list?dir=notes`);
-    if(!res.ok){ listEl.innerHTML=`<div class="item">목록 실패 ${res.status}</div>`; return; }
-    cacheList = await res.json();
-    renderList();
+    try {
+      // API 주소가 없으면 경고
+      if(!API) { alert('index.html 코드 안의 API 주소를 설정해주세요!'); return; }
+
+      const res = await fetch(API + '/list?dir=notes');
+      if(res.ok) {
+        const items = await res.json();
+        cacheList = items.sort((a,b) => b.name.localeCompare(a.name));
+        renderList();
+        cacheList.forEach(item => fetchTitle(item.path));
+      }
+    } catch(e) { console.error(e); }
   }
 
   function renderList(){
-    const q = (searchNotes.value||'').toLowerCase();
-    listEl.innerHTML='';
-    
-    // 메모는 최신순(이름 역순) 정렬이 일반적
-    let items = cacheList.slice().sort((a,b)=> b.name.localeCompare(a.name));
-
-    if(items.length===0){
-      listEl.innerHTML = `<div class="item">메모가 없습니다.</div>`;
-      return;
-    }
-
-    for(const it of items){
-      const el = document.createElement('div');
-      el.className = 'item' + (it.path===currentPath?' active':'');
-      el.innerHTML = `<div class="title">...</div>`;
-      el.onclick = () => {
-        if(dirty && !confirm('저장하지 않은 내용이 있습니다. 이동하시겠습니까?')) return;
-        filenameEl.value = it.path; 
-        doLoad(it.path);
-      };
-      listEl.appendChild(el);
+    const q = (searchEl.value||'').toLowerCase();
+    listEl.innerHTML = '';
+    cacheList.forEach(item => {
+      const displayTitle = titleMap[item.path] || rawTitle(item.path);
+      if(q && !displayTitle.toLowerCase().includes(q)) return;
       
-      getTitle(it.path).then(title=>{
-        if(q && !title.toLowerCase().includes(q)){ el.remove(); return; }
-        el.querySelector('.title').textContent = title;
-      });
+      const div = document.createElement('div');
+      div.className = 'item' + (item.path === currentPath ? ' active' : '');
+      div.innerHTML = '<div class="t">' + displayTitle + '</div><div class="d">' + item.name.split('_')[0] + '</div>';
+      div.onclick = () => {
+        if(dirty && !confirm('저장하지 않은 내용이 있습니다. 이동하시겠습니까?')) return;
+        loadFile(item.path);
+      };
+      listEl.appendChild(div);
+    });
+  }
+  searchEl.oninput = renderList;
+
+  async function fetchTitle(path){
+    if(titleMap[path]) return;
+    try {
+      const res = await fetch(API + '/load?path=' + encodeURIComponent(path));
+      if(res.ok){
+        const json = await res.json();
+        const content = json.content || '';
+        const m = content.match(/^#\\s+(.*)/);
+        if(m) {
+          titleMap[path] = m[1].trim();
+          renderList();
+        }
+      }
+    } catch(e){}
+  }
+
+  async function loadFile(path){
+    pathEl.textContent = '로딩 중...';
+    try {
+      const res = await fetch(API + '/load?path=' + encodeURIComponent(path));
+      if(!res.ok) throw new Error('Load failed');
+      const json = await res.json();
+      currentPath = path;
+      sha = json.sha;
+      const content = json.content || '';
+      const lines = content.split('\\n');
+      if(lines.length > 0 && lines[0].startsWith('# ')) {
+        titleEl.value = lines[0].substring(2).trim();
+      } else {
+        titleEl.value = rawTitle(path);
+      }
+      editorEl.value = content; 
+      pathEl.textContent = path;
+      dirty = false;
+      renderList();
+    } catch(e) {
+      alert('불러오기 실패');
+      pathEl.textContent = '오류';
     }
   }
-  searchNotes.addEventListener('input', renderList);
 
-  /* ===== File Operations ===== */
-  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+  async function saveFile(){
+    if(!currentPath) return;
+    pathEl.textContent = '저장 중...';
+    const realTitle = titleEl.value.trim() || '무제';
+    let lines = editorEl.value.split('\\n');
+    if(lines.length > 0 && lines[0].startsWith('# ')) {
+      lines[0] = '# ' + realTitle;
+    } else {
+      lines.unshift('# ' + realTitle);
+    }
+    const newContent = lines.join('\\n');
 
-  async function doLoad(path){
-    if(!path) return;
-    info.textContent='불러오는 중...';
-    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(!res.ok){ info.textContent='실패'; toast('불러오기 실패'); return; }
-    
-    const json = await res.json();
-    editorEl.value = json.content || '';
-    sha = json.sha || null;
-    currentPath = path;
-    dirty = false;
-    saveState.textContent='불러옴';
-    
-    updateTitleCacheFromEditor(path);
-    loadList(); // 활성화 상태 갱신 등을 위해
+    try {
+      const res = await fetch(API + '/save', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ path: currentPath, content: newContent, sha: sha })
+      });
+      if(!res.ok) throw new Error('Save failed');
+      const json = await res.json();
+      sha = json.sha;
+      dirty = false;
+      pathEl.textContent = '저장됨';
+      titleMap[currentPath] = realTitle;
+      const exists = cacheList.find(x => x.path === currentPath);
+      if(!exists) loadList(); else renderList();
+    } catch(e) {
+      alert('저장 실패');
+      pathEl.textContent = '실패';
+    }
   }
 
-  async function doSave(){
-    const path = filenameEl.value.trim();
-    if(!path){ alert('파일 경로를 입력하세요 (예: notes/제목.md)'); return; }
-    
-    saveState.textContent='저장 중...';
-    const res = await fetch(`${API}/save`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ path, content: editorEl.value, sha })
-    });
-    
-    if(!res.ok){ saveState.textContent='실패'; toast('저장 실패'); return; }
-    const json = await res.json();
-    sha = json.sha || sha;
-    dirty = false;
-    saveState.textContent='저장됨';
-    info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
-    
-    updateTitleCacheFromEditor(path);
-    // 목록 갱신 (새 파일일 경우 목록에 추가되어야 하므로)
-    if(!cacheList.some(x=>x.path===path)) loadList(); else renderList();
-    toast('저장 완료');
+  async function deleteFile(){
+    if(!currentPath || !confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await fetch(API + '/delete', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ path: currentPath, sha: sha })
+      });
+      titleEl.value = ''; editorEl.value = ''; currentPath = ''; sha = null;
+      pathEl.textContent = '삭제됨';
+      loadList();
+    } catch(e) { alert('삭제 실패'); }
   }
 
-  async function doDelete(){
-    const path = filenameEl.value.trim();
-    if(!path || !sha) return;
-    if(!confirm('정말 삭제하시겠습니까?')) return;
-
-    const res = await fetch(`${API}/delete`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ path, sha })
-    });
-    
-    if(!res.ok){ toast('삭제 실패'); return; }
-    
-    editorEl.value = '';
-    filenameEl.value = '';
-    sha = null; currentPath = '';
-    saveState.textContent='대기';
-    toast('삭제 완료');
-    loadList();
-  }
-
-  /* ===== New Note ===== */
-  function newNote(){
-    if(dirty && !confirm('작성 중인 내용이 있습니다. 무시하고 새 메모를 만드시겠습니까?')) return;
-    const now=new Date();
-    // 파일명 포맷: notes/YYYY-MM-DD_HHMM.md
-    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
-    const path = `notes/${name}`;
-    
-    filenameEl.value = path; 
-    currentPath = path; 
+  document.getElementById('newBtn').onclick = () => {
+    if(dirty && !confirm('작성 중인 내용을 버리시겠습니까?')) return;
+    const name = makeFilename();
+    currentPath = 'notes/' + name;
     sha = null;
-    editorEl.value = `# ${name.replace('.md','')}\n\n`;
-    dirty = true; 
-    saveState.textContent='새글';
-    
-    titleCache.set(path, name.replace('.md',''));
-    renderList();
-    editorEl.focus();
-  }
-  newNoteBtn.onclick = newNote;
+    titleEl.value = '';
+    editorEl.value = '# \\n\\n';
+    pathEl.textContent = '새 메모 (' + name + ')';
+    titleEl.focus();
+    dirty = true;
+  };
 
-  /* ===== Listeners ===== */
-  loadBtn.onclick = ()=> doLoad(filenameEl.value.trim());
-  saveBtn.onclick = doSave;
-  deleteBtn.onclick = doDelete;
+  document.getElementById('saveBtn').onclick = saveFile;
+  document.getElementById('delBtn').onclick = deleteFile;
   
-  editorEl.addEventListener('input', ()=>{ dirty=true; saveState.textContent='수정됨'; });
-  window.addEventListener('beforeunload', (e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
-
-  document.addEventListener('keydown', (e)=>{
-    const mod = e.metaKey || e.ctrlKey;
-    if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); doSave(); }
-    if(mod && e.key.toLowerCase()==='n'){ e.preventDefault(); newNote(); }
+  titleEl.addEventListener('input', () => {
+    dirty = true;
+    if(currentPath) {
+      titleMap[currentPath] = titleEl.value;
+      const activeItem = listEl.querySelector('.item.active .t');
+      if(activeItem) activeItem.textContent = titleEl.value || '무제';
+    }
+  });
+  
+  editorEl.addEventListener('input', () => dirty = true);
+  window.addEventListener('keydown', e => {
+    if((e.ctrlKey||e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); }
   });
 
-  /* ===== Init ===== */
   loadList();
-  // 시작 시 기본적으로 받은 편지함(inbox) 같은 걸 띄우고 싶다면 아래 주석 해제
-  // doLoad('notes/inbox.md'); 
 })();
 </script>
 </body>
