@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Notes + Diary</title>
+<title>Simple Notes</title>
 <style>
   :root{
     --bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;--ink:#111827;--ink-weak:#4b5563;
@@ -19,10 +19,6 @@
   body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto}
   header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff0;position:sticky;top:0;backdrop-filter:saturate(180%) blur(8px);z-index:3}
   h1{margin:0;font-size:18px}
-  .tabs{display:flex;gap:8px}
-  .tab{padding:6px 12px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--chip);cursor:pointer}
-  .tab.active{background:#fff0;border-color:var(--ink);font-weight:600}
-  .subbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--muted)}
   .app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 54px)}
   .sidebar{border-right:1px solid var(--line);background:#fff0;display:flex;flex-direction:column;min-height:0}
   .toolbar{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
@@ -39,19 +35,15 @@
   .btn{padding:8px 12px;border:1px solid var(--line);background:#fff0;border-radius:8px;cursor:pointer;color:var(--ink)}
   .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
   .btn.danger{background:var(--danger);color:var(--danger-ink);border-color:var(--danger)}
-  textarea{width:100%;height:60vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff0;color:var(--ink)}
+  textarea{width:100%;height:70vh;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:#fff0;color:var(--ink)}
   .status{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap}
   .badge{border:1px solid var(--line);padding:2px 8px;border-radius:999px}
-  .meta{display:flex;gap:8px;flex-wrap:wrap}
-  .meta select,.meta input{padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff0;color:var(--ink)}
-  .rightbar{display:flex;gap:8px;align-items:center}
-  .chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--chip);font-size:12px;color:var(--ink-weak)}
-
+  
   /* Toast */
   #toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#111827;color:#fff;border-radius:10px;opacity:0;pointer-events:none;transition:.3s;z-index:50}
   #toast.show{opacity:1;transform:translateY(-6px)}
 
-  /* 모바일: 리스트 위, 에디터 아래 */
+  /* 모바일 */
   @media (max-width:900px){
     .app{grid-template-columns:1fr;gap:12px;padding:8px}
     .sidebar{border-right:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -61,72 +53,36 @@
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;gap:12px;">
-    <h1>📝 Notes + 📔 Diary</h1>
-    <div class="tabs">
-      <div id="tabNotes" class="tab active">메모</div>
-      <div id="tabDiary" class="tab">일기</div>
-    </div>
-  </div>
-  <div class="rightbar">
-    <span id="today" class="chip"></span>
+  <h1>📝 Simple Notes</h1>
+  <div>
     <button id="themeBtn" class="btn" title="다크모드 토글">🌓</button>
-    <div class="subbar">
-      <div id="dateBar" style="display:none;align-items:center;gap:6px;">
-        <button id="prevDay" class="btn" title="이전">←</button>
-        <input id="datePicker" type="date"/>
-        <button id="nextDay" class="btn" title="다음">→</button>
-      </div>
-    </div>
   </div>
 </header>
 
 <div class="app">
   <aside class="sidebar">
-    <!-- 메모 툴바 -->
-    <div class="toolbar" id="toolsNotes">
-      <input id="searchNotes" placeholder="메모 검색(제목)"/>
-      <button id="newNote" class="btn" title="새 메모 (Ctrl/Cmd+N)">새 메모</button>
+    <div class="toolbar">
+      <input id="searchNotes" placeholder="메모 검색..."/>
+      <button id="newNote" class="btn" title="새 메모 (Ctrl/Cmd+N)">+</button>
     </div>
-    <!-- 일기 툴바 -->
-    <div class="toolbar" id="toolsDiary" style="display:none;">
-      <input id="searchDiary" placeholder="이 달의 일기 검색(제목)"/>
-    </div>
-
-    <!-- 공통 리스트 -->
     <div id="list" class="list"></div>
   </aside>
 
   <main class="editor">
     <div class="path">
-      <input id="filename" placeholder="경로 (예: notes/inbox.md 또는 diary/2025/11/08.md)"/>
+      <input id="filename" placeholder="경로 (예: notes/idea.md)"/>
       <div class="actions">
         <button id="loadBtn" class="btn" title="불러오기">불러오기</button>
         <button id="saveBtn" class="btn primary" title="저장 (Ctrl/Cmd+S)">저장</button>
-        <button id="deleteBtn" class="btn danger" title="삭제 (Ctrl/Cmd+Backspace)">삭제</button>
+        <button id="deleteBtn" class="btn danger" title="삭제">삭제</button>
         <span id="saveState" class="badge">대기</span>
       </div>
     </div>
 
-    <!-- 일기 메타 -->
-    <div id="metaDiary" class="meta" style="display:none;">
-      <select id="mood">
-        <option value="">기분</option>
-        <option>😊 행복</option><option>😌 편안</option><option>😥 우울</option>
-        <option>😡 화남</option><option>😵 피곤</option><option>🤩 신남</option>
-      </select>
-      <select id="weather">
-        <option value="">날씨</option>
-        <option>☀️ 맑음</option><option>⛅ 부분맑음</option><option>🌧️ 비</option>
-        <option>⛈️ 뇌우</option><option>🌨️ 눈</option><option>🌫️ 안개</option>
-      </select>
-      <input id="tags" placeholder="#태그,쉼표로 구분"/>
-    </div>
-
-    <textarea id="editor" placeholder="내용을 입력한 뒤 '저장'을 누르세요."></textarea>
+    <textarea id="editor" placeholder="내용을 입력하세요."></textarea>
 
     <div class="status">
-      <span>리포지토리: <strong>kjd1374/notes</strong> | 브랜치: <strong>main</strong></span>
+      <span>Repository: <strong>notes</strong></span>
       <span id="info"></span>
     </div>
   </main>
@@ -137,9 +93,9 @@
 <script>
 (function(){
   /* ===== 설정 ===== */
-  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ★ 본인 Worker 주소
+  const API = 'https://notes-api.rusilhurpe.workers.dev'; // ★ Worker 주소 유지
 
-  /* ===== DOM ===== */
+  /* ===== DOM Elements ===== */
   const listEl = document.getElementById('list');
   const filenameEl = document.getElementById('filename');
   const editorEl = document.getElementById('editor');
@@ -148,40 +104,17 @@
   const deleteBtn = document.getElementById('deleteBtn');
   const saveState = document.getElementById('saveState');
   const info = document.getElementById('info');
-  const todayEl = document.getElementById('today');
   const themeBtn = document.getElementById('themeBtn');
-
-  const tabNotes = document.getElementById('tabNotes');
-  const tabDiary = document.getElementById('tabDiary');
-  const toolsNotes = document.getElementById('toolsNotes');
-  const toolsDiary = document.getElementById('toolsDiary');
-
   const searchNotes = document.getElementById('searchNotes');
-  const searchDiary = document.getElementById('searchDiary');
   const newNoteBtn = document.getElementById('newNote');
 
-  const dateBar = document.getElementById('dateBar');
-  const picker = document.getElementById('datePicker');
-  const prevBtn = document.getElementById('prevDay');
-  const nextBtn = document.getElementById('nextDay');
-  const metaDiary = document.getElementById('metaDiary');
-  const moodEl = document.getElementById('mood');
-  const weatherEl = document.getElementById('weather');
-  const tagsEl = document.getElementById('tags');
-
-  /* ===== 상태 ===== */
-  let mode = 'notes'; // 'notes' | 'diary'
+  /* ===== State ===== */
   let currentPath = '';
   let sha = null;
   let cacheList = [];
-  let currentDate = new Date();
   let dirty = false;
 
-  // 오늘 표시 + 테마
-  const fmt = (d)=> d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  todayEl.textContent = fmt(new Date());
-  picker.valueAsDate = currentDate;
-
+  /* ===== Theme Init ===== */
   const savedTheme = localStorage.getItem('theme');
   if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
   themeBtn.onclick = ()=>{
@@ -190,14 +123,10 @@
     localStorage.setItem('theme', cur);
   };
 
-  /* ===== Diary 경로 ===== */
-  const monthDir = (d)=> `diary/${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
-  const toDiaryPath = (d)=> `${monthDir(d)}/${String(d.getDate()).padStart(2,'0')}.md`;
-  const pathToDate = (p)=>{ const m=p.match(/(\d{4})\/(\d{2})\/(\d{2})\.md$/); return m? new Date(+m[1],+m[2]-1,+m[3]) : new Date(); };
-
-  /* ===== 제목 캐시/추출 (리스트 제목만 표시) ===== */
+  /* ===== Helper: Title Extraction ===== */
   const titleCache = new Map();
   function fallbackTitle(path){ const base = path.split('/').pop().replace(/\.md$/i,''); return base.replace(/[-_]+/g,' '); }
+  
   async function getTitle(path){
     if (titleCache.has(path)) return titleCache.get(path);
     try{
@@ -218,38 +147,45 @@
       const t=fallbackTitle(path); titleCache.set(path,t); return t;
     }
   }
+
   function updateTitleCacheFromEditor(path){
     const line = editorEl.value.split(/\r?\n/).find(l=>/^#\s+/.test(l));
     const title = (line ? line.replace(/^#\s+/, '').trim() : '') || titleCache.get(path) || fallbackTitle(path);
     titleCache.set(path, title);
   }
 
-  /* ===== 목록 ===== */
+  /* ===== List Logic ===== */
   async function loadList(){
-    const dir = mode==='notes' ? 'notes' : monthDir(currentDate);
-    const res = await fetch(`${API}/list?dir=${encodeURIComponent(dir)}`);
+    // 일기 모드가 없으므로 무조건 'notes' 폴더만 조회
+    const res = await fetch(`${API}/list?dir=notes`);
     if(!res.ok){ listEl.innerHTML=`<div class="item">목록 실패 ${res.status}</div>`; return; }
     cacheList = await res.json();
     renderList();
   }
-  async function renderList(){
-    const q = (mode==='notes' ? (searchNotes.value||'') : (searchDiary.value||'')).toLowerCase();
+
+  function renderList(){
+    const q = (searchNotes.value||'').toLowerCase();
     listEl.innerHTML='';
-    let items = cacheList.slice();
-    items.sort((a,b)=> (mode==='notes' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)));
+    
+    // 메모는 최신순(이름 역순) 정렬이 일반적
+    let items = cacheList.slice().sort((a,b)=> b.name.localeCompare(a.name));
+
     if(items.length===0){
-      listEl.innerHTML = `<div class="item">${mode==='notes'?'메모가 없습니다':'이 달의 일기가 없습니다'}</div>`;
+      listEl.innerHTML = `<div class="item">메모가 없습니다.</div>`;
       return;
     }
+
     for(const it of items){
       const el = document.createElement('div');
       el.className = 'item' + (it.path===currentPath?' active':'');
-      el.innerHTML = `<div class="title">제목 불러오는 중…</div>`;
+      el.innerHTML = `<div class="title">...</div>`;
       el.onclick = () => {
-        if (mode==='notes') { filenameEl.value = it.path; doLoad(it.path); }
-        else { openDiary(pathToDate(it.path)); }
+        if(dirty && !confirm('저장하지 않은 내용이 있습니다. 이동하시겠습니까?')) return;
+        filenameEl.value = it.path; 
+        doLoad(it.path);
       };
       listEl.appendChild(el);
+      
       getTitle(it.path).then(title=>{
         if(q && !title.toLowerCase().includes(q)){ el.remove(); return; }
         el.querySelector('.title').textContent = title;
@@ -257,76 +193,64 @@
     }
   }
   searchNotes.addEventListener('input', renderList);
-  searchDiary.addEventListener('input', renderList);
 
-  /* ===== 네비/토스트 ===== */
+  /* ===== File Operations ===== */
   function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-
-  /* ===== 불러오기/저장/삭제 ===== */
-  loadBtn.onclick = ()=> doLoad(filenameEl.value.trim());
-  saveBtn.onclick = ()=> doSave();
-  deleteBtn.onclick = ()=> doDelete();
 
   async function doLoad(path){
     if(!path) return;
     info.textContent='불러오는 중...';
     const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; toast('불러오기 실패'); return; }
+    if(!res.ok){ info.textContent='실패'; toast('불러오기 실패'); return; }
+    
     const json = await res.json();
     editorEl.value = json.content || '';
     sha = json.sha || null;
     currentPath = path;
     dirty = false;
     saveState.textContent='불러옴';
-    if(mode==='diary'){
-      const c = editorEl.value;
-      moodEl.value    = c.match(/mood:\s*(.*)/)?.[1]?.trim() || '';
-      weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
-      tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
-    }
+    
     updateTitleCacheFromEditor(path);
-    loadList();
-    toast('불러왔습니다');
+    loadList(); // 활성화 상태 갱신 등을 위해
   }
 
   async function doSave(){
     const path = filenameEl.value.trim();
-    if(!path){ alert('파일 경로를 입력하세요.'); return; }
+    if(!path){ alert('파일 경로를 입력하세요 (예: notes/제목.md)'); return; }
+    
     saveState.textContent='저장 중...';
     const res = await fetch(`${API}/save`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ path, content: editorEl.value, sha })
     });
-    if(!res.ok){ saveState.textContent=`저장 실패 ${res.status}`; toast('저장 실패'); return; }
+    
+    if(!res.ok){ saveState.textContent='실패'; toast('저장 실패'); return; }
     const json = await res.json();
     sha = json.sha || sha;
     dirty = false;
     saveState.textContent='저장됨';
     info.textContent = `저장: ${new Date().toLocaleTimeString()}`;
+    
     updateTitleCacheFromEditor(path);
+    // 목록 갱신 (새 파일일 경우 목록에 추가되어야 하므로)
     if(!cacheList.some(x=>x.path===path)) loadList(); else renderList();
     toast('저장 완료');
   }
 
   async function doDelete(){
     const path = filenameEl.value.trim();
-    if(!path){ alert('삭제할 파일 경로가 없습니다.'); return; }
-    if(!sha){
-      // sha가 없을 때는 최신 sha를 한번 가져와서 삭제
-      const r = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-      if(r.ok){ const j = await r.json(); sha = j.sha || sha; }
-    }
-    if(!sha){ alert('삭제할 파일을 먼저 불러오세요.'); return; }
-    if(!confirm('정말 삭제하시겠어요? 이 작업은 되돌릴 수 없습니다.')) return;
+    if(!path || !sha) return;
+    if(!confirm('정말 삭제하시겠습니까?')) return;
 
     const res = await fetch(`${API}/delete`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ path, sha })
     });
+    
     if(!res.ok){ toast('삭제 실패'); return; }
-    // UI 초기화
+    
     editorEl.value = '';
     filenameEl.value = '';
     sha = null; currentPath = '';
@@ -335,116 +259,45 @@
     loadList();
   }
 
-  // 변경 감지(이탈 경고)
+  /* ===== New Note ===== */
+  function newNote(){
+    if(dirty && !confirm('작성 중인 내용이 있습니다. 무시하고 새 메모를 만드시겠습니까?')) return;
+    const now=new Date();
+    // 파일명 포맷: notes/YYYY-MM-DD_HHMM.md
+    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
+    const path = `notes/${name}`;
+    
+    filenameEl.value = path; 
+    currentPath = path; 
+    sha = null;
+    editorEl.value = `# ${name.replace('.md','')}\n\n`;
+    dirty = true; 
+    saveState.textContent='새글';
+    
+    titleCache.set(path, name.replace('.md',''));
+    renderList();
+    editorEl.focus();
+  }
+  newNoteBtn.onclick = newNote;
+
+  /* ===== Listeners ===== */
+  loadBtn.onclick = ()=> doLoad(filenameEl.value.trim());
+  saveBtn.onclick = doSave;
+  deleteBtn.onclick = doDelete;
+  
   editorEl.addEventListener('input', ()=>{ dirty=true; saveState.textContent='수정됨'; });
   window.addEventListener('beforeunload', (e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 
-  /* ===== 단축키 ===== */
   document.addEventListener('keydown', (e)=>{
     const mod = e.metaKey || e.ctrlKey;
     if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); doSave(); }
     if(mod && e.key.toLowerCase()==='n'){ e.preventDefault(); newNote(); }
-    if(mod && (e.key==='Backspace' || e.key==='Delete')){ e.preventDefault(); doDelete(); }
   });
 
-  /* ===== 메모: 새 노트 ===== */
-  function newNote(){
-    const now=new Date();
-    const name = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.md`;
-    const path = `notes/${name}`;
-    filenameEl.value = path; currentPath=path; sha=null;
-    editorEl.value = `# ${name.replace('.md','')}\n\n`;
-    dirty=true; saveState.textContent='수정됨';
-    titleCache.set(path, name.replace('.md',''));
-    renderList();
-    toast('새 메모 시작');
-  }
-  newNoteBtn.onclick = newNote;
-
-  /* ===== 일기 ===== */
-  function diaryTemplate(date){
-    const ymd = fmt(date);
-    return `---
-date: ${ymd}
-mood: ${moodEl.value||''}
-weather: ${weatherEl.value||''}
-tags: ${tagsEl.value||''}
----
-
-# ${ymd} 일기
-
-오늘의 한 줄:
-- 
-
-오늘 있었던 일:
-- 
-
-감정/생각:
-- 
-`;
-  }
-  async function openDiary(date){
-    currentDate = date;
-    picker.valueAsDate = date;
-    const path = toDiaryPath(date);
-    filenameEl.value = path; currentPath = path;
-    const res = await fetch(`${API}/load?path=${encodeURIComponent(path)}`);
-    if(!res.ok){ info.textContent=`불러오기 실패 ${res.status}`; toast('불러오기 실패'); return; }
-    const {content, sha:shaVal} = await res.json();
-    sha=shaVal||null;
-    if(!content){
-      editorEl.value = diaryTemplate(date);
-      dirty=true; saveState.textContent='수정됨';
-    }else{
-      editorEl.value = content;
-      dirty=false; saveState.textContent='불러옴';
-      const c = content;
-      moodEl.value    = c.match(/mood:\s*(.*)/)?.[1]?.trim() || '';
-      weatherEl.value = c.match(/weather:\s*(.*)/)?.[1]?.trim() || '';
-      tagsEl.value    = c.match(/tags:\s*(.*)/)?.[1]?.trim() || '';
-    }
-    updateTitleCacheFromEditor(path);
-    loadList();
-  }
-  prevBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()-1));
-  nextBtn.onclick = ()=> openDiary(new Date(currentDate.getFullYear(),currentDate.getMonth(),currentDate.getDate()+1));
-  picker.onchange   = ()=> openDiary(new Date(picker.value));
-
-  [moodEl,weatherEl,tagsEl].forEach(el=> el.addEventListener('change', ()=>{
-    if(mode!=='diary') return;
-    let t=editorEl.value;
-    t = /mood:\s*.*/.test(t)    ? t.replace(/mood:\s*.*/,'mood: '+(moodEl.value||''))       : t;
-    t = /weather:\s*.*/.test(t) ? t.replace(/weather:\s*.*/,'weather: '+(weatherEl.value||'')) : t;
-    if(/tags:\s*.*/.test(t)) t = t.replace(/tags:\s*.*/,'tags: '+(tagsEl.value||''));
-    else t = t.replace(/---\n\n/,'---\n\ntags: '+(tagsEl.value||'')+'\n\n');
-    editorEl.value = t; dirty=true; saveState.textContent='수정됨';
-  }));
-
-  /* ===== 탭 전환 ===== */
-  function switchTab(next){
-    if(dirty && !confirm('저장하지 않은 변경 사항이 있습니다. 전환하시겠어요?')) return;
-    mode = next;
-    tabNotes.classList.toggle('active', mode==='notes');
-    tabDiary.classList.toggle('active', mode==='diary');
-    toolsNotes.style.display = (mode==='notes')?'flex':'none';
-    toolsDiary.style.display = (mode==='diary')?'flex':'none';
-    dateBar.style.display    = (mode==='diary')?'flex':'none';
-    metaDiary.style.display  = (mode==='diary')?'flex':'none';
-    dirty = false;
-
-    if(mode==='notes'){
-      filenameEl.value='notes/inbox.md';
-      doLoad('notes/inbox.md');
-    }else{
-      openDiary(currentDate);
-    }
-  }
-  tabNotes.onclick = ()=> switchTab('notes');
-  tabDiary.onclick = ()=> switchTab('diary');
-
-  /* ===== 시작: 메모 기본 ===== */
-  switchTab('notes');
+  /* ===== Init ===== */
   loadList();
+  // 시작 시 기본적으로 받은 편지함(inbox) 같은 걸 띄우고 싶다면 아래 주석 해제
+  // doLoad('notes/inbox.md'); 
 })();
 </script>
 </body>
