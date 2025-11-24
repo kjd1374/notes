@@ -2,80 +2,157 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>My GitHub Notes</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>My Notes</title>
 <style>
-  :root{ --bg:#fafbfc;--line:#e5e7eb;--muted:#6b7280;--ink:#111827;--chip:#f3f4f6;--accent:#111827; }
-  [data-theme="dark"]{ --bg:#0b0f14;--line:#1f2937;--muted:#9ca3af;--ink:#e5e7eb;--chip:#111827;--accent:#3b82f6; }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden;}
+  :root{ 
+    --bg:#ffffff; --line:#e2e8f0; --muted:#64748b; --ink:#0f172a; 
+    --chip:#f1f5f9; --accent:#0f172a; --danger:#ef4444;
+  }
+  [data-theme="dark"]{ 
+    --bg:#0f172a; --line:#1e293b; --muted:#94a3b8; --ink:#f8fafc; 
+    --chip:#1e293b; --accent:#3b82f6; 
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   
-  .app{display:grid;grid-template-columns:300px 1fr;height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    height:100vh; overflow:hidden; /* 스크롤 방지 */
+  }
   
-  /* 사이드바 */
-  .sidebar{border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--bg);}
-  .header{padding:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
-  .header h1{font-size:18px;margin:0;}
-  .search-box{padding:10px;border-bottom:1px solid var(--line);display:flex;gap:5px;}
-  .search-box input{flex:1;padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);}
-  .list{flex:1;overflow-y:auto;}
-  .item{padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
-  .item:hover{background:var(--chip);}
-  .item.active{background:rgba(59,130,246,0.1);border-left:3px solid var(--accent);}
-  .item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .item .d{font-size:11px;color:var(--muted);margin-top:2px;}
+  /* 앱 전체 레이아웃 */
+  .app{ display:flex; height:100%; width:100%; position:relative; }
+  
+  /* --- 사이드바 (목록) --- */
+  .sidebar{
+    width:300px; border-right:1px solid var(--line); display:flex; flex-direction:column; background:var(--bg);
+    flex-shrink:0; z-index:2;
+  }
+  .header{
+    padding:12px 16px; border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .header h1{ font-size:18px; font-weight:700; margin:0; }
+  
+  .search-box{ padding:10px; border-bottom:1px solid var(--line); display:flex; gap:8px; }
+  .search-box input{
+    flex:1; padding:8px; border-radius:8px; border:1px solid var(--line);
+    background:var(--chip); color:var(--ink); outline:none; font-size:14px;
+  }
+  .search-box button{
+    width:36px; font-size:20px; padding:0; display:flex; align-items:center; justify-content:center;
+  }
 
+  .list{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .item{ padding:14px 16px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .item:active{ background:var(--chip); }
+  .item.active{ background:var(--chip); border-left:4px solid var(--accent); }
+  .item .t{ font-weight:600; font-size:15px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .d{ font-size:12px; color:var(--muted); }
+
+  /* --- 메인 (에디터) --- */
+  .main{
+    flex:1; display:flex; flex-direction:column; background:var(--bg);
+    min-width:0; /* flex 자식 overflow 방지 */
+  }
+  
+  /* 툴바 */
+  .toolbar{
+    padding:8px 12px; border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center; height:50px;
+  }
+  .toolbar-left{ display:flex; align-items:center; gap:8px; overflow:hidden; }
+  #backBtn{ display:none; /* 데스크탑에선 숨김 */ font-weight:bold; }
+  .status{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  
+  .actions{ display:flex; gap:8px; }
+  
   /* 에디터 영역 */
-  .main{display:flex;flex-direction:column;height:100%;}
-  .toolbar{padding:10px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
-  .status{font-size:12px;color:var(--muted);font-family:monospace;}
-  .editor-area{flex:1;padding:30px 40px;display:flex;flex-direction:column;overflow-y:auto;}
+  .editor-area{
+    flex:1; display:flex; flex-direction:column; padding:20px;
+    overflow-y:auto; /* 내부 스크롤 */
+  }
   
-  #noteTitle{ font-size:28px;font-weight:bold;border:none;background:transparent;color:var(--ink);width:100%;outline:none;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid transparent; }
+  #noteTitle{
+    font-size:22px; font-weight:700; border:none; background:transparent;
+    color:var(--ink); width:100%; outline:none; margin-bottom:16px;
+    padding:0 0 8px 0; border-bottom:2px solid transparent;
+  }
   #noteTitle:focus{ border-bottom-color:var(--line); }
-  #editor{ flex:1;border:none;resize:none;background:transparent;color:var(--ink);font-size:16px;line-height:1.6;outline:none;font-family:inherit; }
   
-  button{cursor:pointer;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--chip);color:var(--ink);}
-  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-  
-  @media(max-width:700px){ .app{grid-template-columns:1fr;} .sidebar{display:none;} }
+  #editor{
+    flex:1; border:none; resize:none; background:transparent;
+    color:var(--ink); font-size:16px; line-height:1.6; outline:none;
+    font-family:inherit; width:100%; min-height:50vh; /* 최소 높이 확보 */
+  }
+
+  /* 버튼 스타일 */
+  button{
+    padding:6px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); cursor:pointer; font-size:13px;
+  }
+  button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  button.danger{ color:var(--danger); border-color:var(--line); }
+
+  /* --- ★ 모바일 반응형 처리 ★ --- */
+  @media (max-width: 768px) {
+    /* 기본 상태: 목록만 보임 */
+    .app .main { display:none; }
+    .sidebar { width:100%; }
+    
+    /* 에디터 활성 상태 (클래스 show-editor) */
+    .app.show-editor .sidebar { display:none; }
+    .app.show-editor .main { display:flex; }
+    
+    #backBtn { display:block; } /* 뒤로가기 버튼 표시 */
+    
+    .editor-area { padding:16px; } /* 패딩 축소 */
+    #noteTitle { font-size:20px; }
+    #editor { font-size:15px; }
+  }
 </style>
 </head>
 <body>
-<div class="app">
+
+<div id="app" class="app">
   <aside class="sidebar">
     <div class="header">
-      <h1>📒 GitHub Notes</h1>
+      <h1>📒 Notes</h1>
       <button id="themeBtn">🌓</button>
     </div>
     <div class="search-box">
       <input id="search" placeholder="검색...">
-      <button id="newBtn">+</button>
+      <button id="newBtn" title="새 메모">+</button>
     </div>
     <div id="list" class="list"></div>
   </aside>
+
   <main class="main">
     <div class="toolbar">
-      <span id="filePath" class="status">준비됨</span>
-      <div style="display:flex;gap:8px">
+      <div class="toolbar-left">
+        <button id="backBtn">← 목록</button>
+        <span id="filePath" class="status">준비됨</span>
+      </div>
+      <div class="actions">
+        <button id="delBtn" class="danger">삭제</button>
         <button id="saveBtn" class="primary">저장</button>
-        <button id="delBtn">삭제</button>
       </div>
     </div>
     <div class="editor-area">
-      <input id="noteTitle" placeholder="제목을 입력하세요">
+      <input id="noteTitle" placeholder="제목 입력">
       <textarea id="editor" placeholder="내용을 입력하세요..."></textarea>
     </div>
   </main>
 </div>
+
 <script>
 (function(){
-  /* ★★★ 여기가 제일 중요합니다!!! ★★★ 
-     Cloudflare Worker 주소를 따옴표 안에 정확히 넣어주세요.
-     (예: https://notes-api.rusilhurpe.workers.dev)
-  */
-  const API = 'https://notes-api.rusilhurpe.workers.dev'; 
+  /* ⚠️ 여기에 Cloudflare Worker 주소를 넣어주세요! */
+  const API = 'https://notes-api.rusilhurpe.workers.dev';
 
+  /* DOM */
+  const appEl = document.getElementById('app');
   const listEl = document.getElementById('list');
   const titleEl = document.getElementById('noteTitle');
   const editorEl = document.getElementById('editor');
@@ -86,9 +163,17 @@
   let sha = null;
   let cacheList = [];
   let dirty = false;
-  
   const titleMap = {};
 
+  /* 모바일 화면 전환 함수 */
+  function showList() { appEl.classList.remove('show-editor'); }
+  function showEditor() { appEl.classList.add('show-editor'); }
+  document.getElementById('backBtn').onclick = () => {
+    if(dirty && !confirm('저장하지 않은 내용이 있습니다. 나가시겠습니까?')) return;
+    showList();
+  };
+
+  /* 테마 설정 */
   if(localStorage.getItem('theme')==='dark') document.documentElement.setAttribute('data-theme','dark');
   document.getElementById('themeBtn').onclick = () => {
     const isDark = document.documentElement.getAttribute('data-theme')==='dark';
@@ -96,19 +181,18 @@
     localStorage.setItem('theme', isDark?'light':'dark');
   };
 
+  /* 유틸 */
   function makeFilename(){
     const d = new Date();
     const pad = n => String(n).padStart(2,'0');
     return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())+'.md';
   }
-
   function rawTitle(path){ return path.split('/').pop().replace('.md',''); }
 
+  /* 목록 로드 */
   async function loadList(){
+    if(!API){ alert('API 주소를 설정해주세요!'); return; }
     try {
-      // API 주소가 없으면 경고
-      if(!API) { alert('index.html 코드 안의 API 주소를 설정해주세요!'); return; }
-
       const res = await fetch(API + '/list?dir=notes');
       if(res.ok) {
         const items = await res.json();
@@ -122,13 +206,19 @@
   function renderList(){
     const q = (searchEl.value||'').toLowerCase();
     listEl.innerHTML = '';
+    
+    if(cacheList.length === 0) {
+      listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa">메모가 없습니다</div>';
+      return;
+    }
+
     cacheList.forEach(item => {
       const displayTitle = titleMap[item.path] || rawTitle(item.path);
       if(q && !displayTitle.toLowerCase().includes(q)) return;
       
       const div = document.createElement('div');
       div.className = 'item' + (item.path === currentPath ? ' active' : '');
-      div.innerHTML = '<div class="t">' + displayTitle + '</div><div class="d">' + item.name.split('_')[0] + '</div>';
+      div.innerHTML = `<div class="t">${displayTitle}</div><div class="d">${item.name.split('_')[0]}</div>`;
       div.onclick = () => {
         if(dirty && !confirm('저장하지 않은 내용이 있습니다. 이동하시겠습니까?')) return;
         loadFile(item.path);
@@ -138,6 +228,7 @@
   }
   searchEl.oninput = renderList;
 
+  /* 제목 비동기 로드 */
   async function fetchTitle(path){
     if(titleMap[path]) return;
     try {
@@ -145,25 +236,26 @@
       if(res.ok){
         const json = await res.json();
         const content = json.content || '';
-        const m = content.match(/^#\\s+(.*)/);
-        if(m) {
-          titleMap[path] = m[1].trim();
-          renderList();
-        }
+        const m = content.match(/^#\s+(.*)/);
+        if(m) { titleMap[path] = m[1].trim(); renderList(); }
       }
     } catch(e){}
   }
 
+  /* 파일 열기 */
   async function loadFile(path){
     pathEl.textContent = '로딩 중...';
+    showEditor(); // 모바일: 에디터 화면으로 전환
+    
     try {
       const res = await fetch(API + '/load?path=' + encodeURIComponent(path));
       if(!res.ok) throw new Error('Load failed');
       const json = await res.json();
       currentPath = path;
       sha = json.sha;
+      
       const content = json.content || '';
-      const lines = content.split('\\n');
+      const lines = content.split('\n');
       if(lines.length > 0 && lines[0].startsWith('# ')) {
         titleEl.value = lines[0].substring(2).trim();
       } else {
@@ -172,24 +264,28 @@
       editorEl.value = content; 
       pathEl.textContent = path;
       dirty = false;
-      renderList();
+      
+      // 활성 아이템 표시
+      document.querySelectorAll('.item').forEach(el => el.classList.remove('active'));
+      renderList(); 
     } catch(e) {
       alert('불러오기 실패');
       pathEl.textContent = '오류';
     }
   }
 
+  /* 파일 저장 */
   async function saveFile(){
     if(!currentPath) return;
     pathEl.textContent = '저장 중...';
     const realTitle = titleEl.value.trim() || '무제';
-    let lines = editorEl.value.split('\\n');
+    let lines = editorEl.value.split('\n');
     if(lines.length > 0 && lines[0].startsWith('# ')) {
       lines[0] = '# ' + realTitle;
     } else {
       lines.unshift('# ' + realTitle);
     }
-    const newContent = lines.join('\\n');
+    const newContent = lines.join('\n');
 
     try {
       const res = await fetch(API + '/save', {
@@ -203,14 +299,18 @@
       dirty = false;
       pathEl.textContent = '저장됨';
       titleMap[currentPath] = realTitle;
+      
+      // 목록 갱신
       const exists = cacheList.find(x => x.path === currentPath);
       if(!exists) loadList(); else renderList();
+      
     } catch(e) {
       alert('저장 실패');
       pathEl.textContent = '실패';
     }
   }
 
+  /* 파일 삭제 */
   async function deleteFile(){
     if(!currentPath || !confirm('정말 삭제하시겠습니까?')) return;
     try {
@@ -222,30 +322,36 @@
       titleEl.value = ''; editorEl.value = ''; currentPath = ''; sha = null;
       pathEl.textContent = '삭제됨';
       loadList();
+      showList(); // 모바일: 목록으로 복귀
     } catch(e) { alert('삭제 실패'); }
   }
 
+  /* 새 메모 */
   document.getElementById('newBtn').onclick = () => {
     if(dirty && !confirm('작성 중인 내용을 버리시겠습니까?')) return;
     const name = makeFilename();
     currentPath = 'notes/' + name;
     sha = null;
     titleEl.value = '';
-    editorEl.value = '# \\n\\n';
-    pathEl.textContent = '새 메모 (' + name + ')';
-    titleEl.focus();
+    editorEl.value = '# \n\n';
+    pathEl.textContent = '새 메모';
+    
+    showEditor(); // 모바일: 에디터로 이동
+    setTimeout(() => titleEl.focus(), 100); // 포커스 타이밍 조절
     dirty = true;
   };
 
   document.getElementById('saveBtn').onclick = saveFile;
   document.getElementById('delBtn').onclick = deleteFile;
   
+  /* 실시간 제목 반영 */
   titleEl.addEventListener('input', () => {
     dirty = true;
     if(currentPath) {
       titleMap[currentPath] = titleEl.value;
-      const activeItem = listEl.querySelector('.item.active .t');
-      if(activeItem) activeItem.textContent = titleEl.value || '무제';
+      // 활성 아이템 업데이트는 renderList 재호출 없이 DOM만 수정 (성능)
+      const activeEl = Array.from(document.querySelectorAll('.item')).find(el => el.textContent.includes(rawTitle(currentPath))); 
+      if(activeEl) { renderList(); } // 간단히 다시 그리기
     }
   });
   
@@ -254,6 +360,7 @@
     if((e.ctrlKey||e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); }
   });
 
+  /* 초기화 */
   loadList();
 })();
 </script>
