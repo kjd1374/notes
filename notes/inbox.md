@@ -7,7 +7,6 @@ animate blue hall /white hall
 베트남에 제안하면 어떨까?
 
 AIzaSyDj4q62kq0vH0UGbtAl_gpyO1reHngv4I8
-
 UPSEER
 BADILLAIN
 THEWIND
