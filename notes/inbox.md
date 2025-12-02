@@ -1,10 +1,5 @@
 # inbox
-이건 테스트인데 왜 저장이 안되고 불러오는게 안되는거지??
-animate blue hall /white hall
-아크릴스탠즈라늠게 있네
-반디이코리아에 미니 키링 만들자고 하면??
-
-베트남에 제안하면 어떨까?
+개인통관번호: P250023829652
 
 AIzaSyDj4q62kq0vH0UGbtAl_gpyO1reHngv4I8
 UPSEER
