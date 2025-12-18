@@ -8,15 +8,4 @@ https://telpo.co.kr/
 
 게임인제 운전자 시점에서 빠져 나가는 게임 돌발이랑 교차로 숫자가 핵심이지 신호등도 넣자 시점 전환도 넣어야하나?
 
-AIzaSyDj4q62kq0vH0UGbtAl_gpyO1reHngv4I8
-UPSEER
-BADILLAIN
-THEWIND
-NOIUERA
-1VERSE
-NEWBEAT
-CLOSEYOUREYES
-UDTT
-LUN8
-BABYDONTCRY
-ATHEART
+
