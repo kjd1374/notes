@@ -12,3 +12,6 @@
 
 상품에 번호달자
 
+
+https://chatgpt.com/share/694e52f1-7730-8003-99ea-02cd41932c0c
+
