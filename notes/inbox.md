@@ -11,7 +11,7 @@
 
 게임인제 운전자 시점에서 빠져 나가는 게임 돌발이랑 교차로 숫자가 핵심이지 신호등도 넣자 시점 전환도 넣어야하나?
 
-https://vscode.dev/tunnel/jungui-macminilocal/Users/jungdookim
+에이블리 / 지그재그 / 3CE
 
 https://boxfulofficial.tistory.com/438
 https://shopee.kr/blog/detail.php?seq=681
